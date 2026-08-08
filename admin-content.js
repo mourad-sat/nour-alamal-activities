@@ -114,3 +114,7 @@ async function initContentAdmin(){
 
 client.auth.onAuthStateChange(()=>initContentAdmin());
 initContentAdmin();
+
+const advancedAdminScript=document.createElement('script');
+advancedAdminScript.src='admin-advanced.js';
+document.body.appendChild(advancedAdminScript);
