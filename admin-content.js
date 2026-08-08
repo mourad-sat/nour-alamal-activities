@@ -118,3 +118,10 @@ initContentAdmin();
 const advancedAdminScript=document.createElement('script');
 advancedAdminScript.src='admin-advanced.js';
 document.body.appendChild(advancedAdminScript);
+
+if(!document.querySelector('script[data-direct-managers]')){
+  const managersScript=document.createElement('script');
+  managersScript.src='admin-managers.js?v=20260808-2143';
+  managersScript.dataset.directManagers='1';
+  document.body.appendChild(managersScript);
+}
