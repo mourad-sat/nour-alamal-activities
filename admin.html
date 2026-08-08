@@ -14,115 +14,16 @@
   <span class="badge">دخول الإدارة</span><h1>لوحة التحكم</h1><p>أدخل البريد الإلكتروني وكلمة المرور الخاصة بحساب المدير.</p>
   <form id="loginForm"><label>البريد الإلكتروني<input id="email" type="email" required autocomplete="email"></label><label>كلمة المرور<input id="password" type="password" required autocomplete="current-password"></label><button type="submit">دخول</button><button type="button" id="resetPasswordBtn" class="secondary full">نسيت كلمة المرور</button><p id="loginMsg" class="msg"></p></form>
 </section>
-
 <section id="adminView" class="hidden">
   <div class="admin-head"><div><span class="badge">لوحة التحكم</span><h1>إدارة الموقع</h1><p>أدر المحتوى والصور وبيانات التواصل من مكان واحد.</p></div><a class="button-link" href="index.html" target="_blank">فتح الموقع ↗</a></div>
-
-  <nav class="tabs" id="tabs">
-    <button class="active" data-tab="posts">المنشورات</button>
-    <button data-tab="content">البرامج والأنشطة</button>
-    <button data-tab="gallery">معرض الصور</button>
-    <button data-tab="settings">بيانات التواصل</button>
-  </nav>
-
-  <section class="tab-panel" data-panel="posts">
-    <div class="admin-grid">
-      <section class="panel editor">
-        <div class="section-title"><h2 id="formTitle">منشور جديد</h2><button type="button" id="newBtn" class="secondary">+ جديد</button></div>
-        <form id="postForm">
-          <input type="hidden" id="postId">
-          <label>العنوان<input id="title" required maxlength="180"></label>
-          <label>الملخص<textarea id="excerpt" rows="3" maxlength="500"></textarea></label>
-          <label>المحتوى الكامل<textarea id="content" rows="7"></textarea></label>
-          <div class="two"><label>التصنيف<select id="category"><option value="education">تربية</option><option value="training">تكوين</option><option value="digital">رقمنة</option><option value="community">مجتمعي</option></select></label><label>تاريخ النشر<input id="publishedAt" type="datetime-local"></label></div>
-          <label>صورة المنشور<input id="postImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><small>يمكن رفع JPG أو PNG أو WEBP أو GIF حتى 5MB.</small></label>
-          <label>أو رابط صورة<input id="imageUrl" type="url" placeholder="https://..."></label>
-          <div id="postImagePreview" class="image-preview hidden"></div>
-          <label class="check"><input id="published" type="checkbox" checked> نشر المنشور للعامة</label>
-          <div class="actions"><button type="submit">حفظ المنشور</button><button type="button" id="cancelBtn" class="secondary">إلغاء التعديل</button></div>
-          <p id="formMsg" class="msg"></p>
-        </form>
-      </section>
-      <section class="panel list-panel"><div class="list-head"><h2>كل المنشورات</h2><button id="refreshBtn" class="secondary">تحديث</button></div><div id="postsList" class="posts-list"><p>جارٍ التحميل...</p></div></section>
-    </div>
-  </section>
-
-  <section class="tab-panel hidden" data-panel="content">
-    <div class="content-stack">
-      <div>
-        <div class="block-heading"><div><span class="badge">البرامج</span><h2>إدارة برامج الجمعية</h2></div><p>يمكن تغيير الترتيب وإبراز برنامج رئيسي وإخفاء أي برنامج مؤقتاً.</p></div>
-        <div class="admin-grid">
-          <section class="panel editor">
-            <div class="section-title"><h2 id="programFormTitle">برنامج جديد</h2><button type="button" id="programNewBtn" class="secondary">+ جديد</button></div>
-            <form id="programForm">
-              <input type="hidden" id="programId">
-              <div class="two"><label>اسم البرنامج<input id="programTitle" required maxlength="180"></label><label>الرمز/الأيقونة<input id="programIcon" value="✨" maxlength="8"></label></div>
-              <label>وصف قصير أعلى البطاقة<input id="programLabel" maxlength="100" placeholder="مثال: برنامج رئيسي"></label>
-              <label>وصف البرنامج<textarea id="programDescription" rows="4"></textarea></label>
-              <label>النقاط الرئيسية<textarea id="programHighlights" rows="4" placeholder="اكتب كل نقطة في سطر منفصل"></textarea></label>
-              <label>صورة اختيارية<input id="programImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label>
-              <label>أو رابط الصورة<input id="programImageUrl" type="url" placeholder="https://..."></label>
-              <div class="three"><label>الترتيب<input id="programOrder" type="number" value="0"></label><label class="check inline-check"><input id="programFeatured" type="checkbox"> برنامج مميز</label><label class="check inline-check"><input id="programPublished" type="checkbox" checked> ظاهر في الموقع</label></div>
-              <div class="actions"><button type="submit">حفظ البرنامج</button><button type="button" id="programCancelBtn" class="secondary">إلغاء</button></div><p id="programMsg" class="msg"></p>
-            </form>
-          </section>
-          <section class="panel list-panel"><div class="list-head"><h2>البرامج الحالية</h2><button id="programRefreshBtn" class="secondary">تحديث</button></div><div id="programsList" class="posts-list"></div></section>
-        </div>
-      </div>
-
-      <div>
-        <div class="block-heading"><div><span class="badge">الأنشطة</span><h2>إدارة أنشطة الجمعية</h2></div><p>تظهر الأنشطة المنشورة تلقائياً في قسم «آخر الأنشطة والمبادرات».</p></div>
-        <div class="admin-grid">
-          <section class="panel editor">
-            <div class="section-title"><h2 id="activityFormTitle">نشاط جديد</h2><button type="button" id="activityNewBtn" class="secondary">+ جديد</button></div>
-            <form id="activityForm">
-              <input type="hidden" id="activityId">
-              <label>عنوان النشاط<input id="activityTitle" required maxlength="180"></label>
-              <label>وصف النشاط<textarea id="activityDescription" rows="5"></textarea></label>
-              <div class="two"><label>التصنيف<select id="activityCategory"><option value="education">تربية</option><option value="training">تكوين</option><option value="digital">رقمنة</option><option value="community">مجتمعي</option></select></label><label>تاريخ النشاط<input id="activityDate" type="date"></label></div>
-              <label>صورة النشاط<input id="activityImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label>
-              <label>أو رابط الصورة<input id="activityImageUrl" type="url" placeholder="https://..."></label>
-              <div class="two"><label>الترتيب<input id="activityOrder" type="number" value="0"></label><label class="check inline-check"><input id="activityPublished" type="checkbox" checked> ظاهر في الموقع</label></div>
-              <div class="actions"><button type="submit">حفظ النشاط</button><button type="button" id="activityCancelBtn" class="secondary">إلغاء</button></div><p id="activityMsg" class="msg"></p>
-            </form>
-          </section>
-          <section class="panel list-panel"><div class="list-head"><h2>الأنشطة الحالية</h2><button id="activityRefreshBtn" class="secondary">تحديث</button></div><div id="activitiesList" class="posts-list"></div></section>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="tab-panel hidden" data-panel="gallery">
-    <div class="admin-grid">
-      <section class="panel editor">
-        <h2>إضافة صورة للمعرض</h2>
-        <form id="galleryForm">
-          <input type="hidden" id="galleryId">
-          <label>عنوان الصورة<input id="galleryTitle" maxlength="160" placeholder="مثال: ورشة التكوين الرقمي"></label>
-          <label>اختر الصورة<input id="galleryFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label>
-          <label>أو رابط الصورة<input id="galleryUrl" type="url" placeholder="https://..."></label>
-          <div class="two"><label>الترتيب<input id="galleryOrder" type="number" value="0"></label><label class="check inline-check"><input id="galleryPublished" type="checkbox" checked> ظاهرة في الموقع</label></div>
-          <div class="actions"><button type="submit">حفظ الصورة</button><button type="button" id="galleryCancel" class="secondary">إلغاء</button></div>
-          <p id="galleryMsg" class="msg"></p>
-        </form>
-      </section>
-      <section class="panel list-panel"><div class="list-head"><h2>صور المعرض</h2><button id="galleryRefresh" class="secondary">تحديث</button></div><div id="galleryList" class="gallery-admin-grid"></div></section>
-    </div>
-  </section>
-
-  <section class="tab-panel hidden" data-panel="settings">
-    <section class="panel settings-panel">
-      <h2>بيانات التواصل</h2><p>تظهر هذه البيانات مباشرة في قسم «تواصل معنا» بالموقع.</p>
-      <form id="settingsForm">
-        <label>عنوان الجمعية<input id="settingAddress" placeholder="العنوان الكامل"></label>
-        <label>البريد الإلكتروني الرسمي<input id="settingEmail" type="email" placeholder="example@email.com"></label>
-        <label>رقم الهاتف<input id="settingPhone" placeholder="+212 ..."></label>
-        <button type="submit">حفظ بيانات التواصل</button><p id="settingsMsg" class="msg"></p>
-      </form>
-    </section>
-  </section>
+  <nav class="tabs" id="tabs"><button class="active" data-tab="posts">المنشورات</button><button data-tab="content">البرامج والأنشطة</button><button data-tab="gallery">معرض الصور</button><button data-tab="settings">بيانات التواصل</button></nav>
+  <section class="tab-panel" data-panel="posts"><div class="admin-grid"><section class="panel editor"><div class="section-title"><h2 id="formTitle">منشور جديد</h2><button type="button" id="newBtn" class="secondary">+ جديد</button></div><form id="postForm"><input type="hidden" id="postId"><label>العنوان<input id="title" required maxlength="180"></label><label>الملخص<textarea id="excerpt" rows="3" maxlength="500"></textarea></label><label>المحتوى الكامل<textarea id="content" rows="7"></textarea></label><div class="two"><label>التصنيف<select id="category"><option value="education">تربية</option><option value="training">تكوين</option><option value="digital">رقمنة</option><option value="community">مجتمعي</option></select></label><label>تاريخ النشر<input id="publishedAt" type="datetime-local"></label></div><label>صورة المنشور<input id="postImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><small>يمكن رفع JPG أو PNG أو WEBP أو GIF حتى 5MB.</small></label><label>أو رابط صورة<input id="imageUrl" type="url" placeholder="https://..."></label><div id="postImagePreview" class="image-preview hidden"></div><label class="check"><input id="published" type="checkbox" checked> نشر المنشور للعامة</label><div class="actions"><button type="submit">حفظ المنشور</button><button type="button" id="cancelBtn" class="secondary">إلغاء التعديل</button></div><p id="formMsg" class="msg"></p></form></section><section class="panel list-panel"><div class="list-head"><h2>كل المنشورات</h2><button id="refreshBtn" class="secondary">تحديث</button></div><div id="postsList" class="posts-list"><p>جارٍ التحميل...</p></div></section></div></section>
+  <section class="tab-panel hidden" data-panel="content"><div class="content-stack"><div><div class="block-heading"><div><span class="badge">البرامج</span><h2>إدارة برامج الجمعية</h2></div><p>يمكن تغيير الترتيب وإبراز برنامج رئيسي وإخفاء أي برنامج مؤقتاً.</p></div><div class="admin-grid"><section class="panel editor"><div class="section-title"><h2 id="programFormTitle">برنامج جديد</h2><button type="button" id="programNewBtn" class="secondary">+ جديد</button></div><form id="programForm"><input type="hidden" id="programId"><div class="two"><label>اسم البرنامج<input id="programTitle" required maxlength="180"></label><label>الرمز/الأيقونة<input id="programIcon" value="✨" maxlength="8"></label></div><label>وصف قصير أعلى البطاقة<input id="programLabel" maxlength="100" placeholder="مثال: برنامج رئيسي"></label><label>وصف البرنامج<textarea id="programDescription" rows="4"></textarea></label><label>النقاط الرئيسية<textarea id="programHighlights" rows="4" placeholder="اكتب كل نقطة في سطر منفصل"></textarea></label><label>صورة اختيارية<input id="programImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>أو رابط الصورة<input id="programImageUrl" type="url" placeholder="https://..."></label><div class="three"><label>الترتيب<input id="programOrder" type="number" value="0"></label><label class="check inline-check"><input id="programFeatured" type="checkbox"> برنامج مميز</label><label class="check inline-check"><input id="programPublished" type="checkbox" checked> ظاهر في الموقع</label></div><div class="actions"><button type="submit">حفظ البرنامج</button><button type="button" id="programCancelBtn" class="secondary">إلغاء</button></div><p id="programMsg" class="msg"></p></form></section><section class="panel list-panel"><div class="list-head"><h2>البرامج الحالية</h2><button id="programRefreshBtn" class="secondary">تحديث</button></div><div id="programsList" class="posts-list"></div></section></div></div><div><div class="block-heading"><div><span class="badge">الأنشطة</span><h2>إدارة أنشطة الجمعية</h2></div><p>تظهر الأنشطة المنشورة تلقائياً في قسم «آخر الأنشطة والمبادرات».</p></div><div class="admin-grid"><section class="panel editor"><div class="section-title"><h2 id="activityFormTitle">نشاط جديد</h2><button type="button" id="activityNewBtn" class="secondary">+ جديد</button></div><form id="activityForm"><input type="hidden" id="activityId"><label>عنوان النشاط<input id="activityTitle" required maxlength="180"></label><label>وصف النشاط<textarea id="activityDescription" rows="5"></textarea></label><div class="two"><label>التصنيف<select id="activityCategory"><option value="education">تربية</option><option value="training">تكوين</option><option value="digital">رقمنة</option><option value="community">مجتمعي</option></select></label><label>تاريخ النشاط<input id="activityDate" type="date"></label></div><label>صورة النشاط<input id="activityImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>أو رابط الصورة<input id="activityImageUrl" type="url" placeholder="https://..."></label><div class="two"><label>الترتيب<input id="activityOrder" type="number" value="0"></label><label class="check inline-check"><input id="activityPublished" type="checkbox" checked> ظاهر في الموقع</label></div><div class="actions"><button type="submit">حفظ النشاط</button><button type="button" id="activityCancelBtn" class="secondary">إلغاء</button></div><p id="activityMsg" class="msg"></p></form></section><section class="panel list-panel"><div class="list-head"><h2>الأنشطة الحالية</h2><button id="activityRefreshBtn" class="secondary">تحديث</button></div><div id="activitiesList" class="posts-list"></div></section></div></div></div></section>
+  <section class="tab-panel hidden" data-panel="gallery"><div class="admin-grid"><section class="panel editor"><h2>إضافة صورة للمعرض</h2><form id="galleryForm"><input type="hidden" id="galleryId"><label>عنوان الصورة<input id="galleryTitle" maxlength="160" placeholder="مثال: ورشة التكوين الرقمي"></label><label>اختر الصورة<input id="galleryFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>أو رابط الصورة<input id="galleryUrl" type="url" placeholder="https://..."></label><div class="two"><label>الترتيب<input id="galleryOrder" type="number" value="0"></label><label class="check inline-check"><input id="galleryPublished" type="checkbox" checked> ظاهرة في الموقع</label></div><div class="actions"><button type="submit">حفظ الصورة</button><button type="button" id="galleryCancel" class="secondary">إلغاء</button></div><p id="galleryMsg" class="msg"></p></form></section><section class="panel list-panel"><div class="list-head"><h2>صور المعرض</h2><button id="galleryRefresh" class="secondary">تحديث</button></div><div id="galleryList" class="gallery-admin-grid"></div></section></div></section>
+  <section class="tab-panel hidden" data-panel="settings"><section class="panel settings-panel"><h2>بيانات التواصل</h2><p>تظهر هذه البيانات مباشرة في قسم «تواصل معنا» بالموقع.</p><form id="settingsForm"><label>عنوان الجمعية<input id="settingAddress" placeholder="العنوان الكامل"></label><label>البريد الإلكتروني الرسمي<input id="settingEmail" type="email" placeholder="example@email.com"></label><label>رقم الهاتف<input id="settingPhone" placeholder="+212 ..."></label><button type="submit">حفظ بيانات التواصل</button><p id="settingsMsg" class="msg"></p></form></section></section>
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="admin.js"></script>
+<script src="admin-content.js"></script>
 </body></html>
