@@ -19,7 +19,7 @@
   const brandingPanel=document.createElement('section');
   brandingPanel.className='tab-panel hidden';
   brandingPanel.dataset.panel='branding';
-  brandingPanel.innerHTML=`<div class="admin-grid"><section class="panel editor"><h2>هوية الجمعية</h2><form id="brandingForm"><label>شعار الجمعية<input id="brandingLogoFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>أو رابط الشعار<input id="brandingLogoUrl" type="url" placeholder="https://..."></label><div id="brandingLogoPreview" class="image-preview hidden"></div><hr class="sep"><h2>الواجهة الرئيسية</h2><label>العبارة القصيرة<input id="heroBadge" maxlength="100"></label><label>العنوان الرئيسي<input id="heroTitle" maxlength="220"></label><label>النص التعريفي<textarea id="heroText" rows="5" maxlength="700"></textarea></label><label>صورة الواجهة<input id="heroImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>أو رابط الصورة<input id="heroImageUrl" type="url" placeholder="https://..."></label><div id="heroImagePreview" class="image-preview hidden"></div><button type="submit">حفظ الهوية والواجهة</button><p id="brandingMsg" class="msg"></p></form></section><section class="panel"><h2>معاينة سريعة</h2><div class="brand-preview"><div id="brandPreviewLogo" class="brand-preview-logo">ن</div><span id="brandPreviewBadge" class="badge">جمعية نور الأمل</span><h3 id="brandPreviewTitle">نحو فرص جديدة للتعلم والتأهيل والاندماج</h3><p id="brandPreviewText"></p><img id="brandPreviewHero" class="brand-preview-hero" alt="معاينة صورة الواجهة"></div></section></div>`;
+  brandingPanel.innerHTML=`<div class="admin-grid"><section class="panel editor"><h2>هوية الجمعية</h2><form id="brandingForm"><label>شعار الجمعية<input id="brandingLogoFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>أو رابط/مسار الشعار<input id="brandingLogoUrl" type="text" inputmode="url" placeholder="https://... أو assets/logo.svg"></label><div id="brandingLogoPreview" class="image-preview hidden"></div><hr class="sep"><h2>الواجهة الرئيسية</h2><label>العبارة القصيرة<input id="heroBadge" maxlength="100"></label><label>العنوان الرئيسي<input id="heroTitle" maxlength="220"></label><label>النص التعريفي<textarea id="heroText" rows="5" maxlength="700"></textarea></label><label>صورة الواجهة<input id="heroImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>أو رابط/مسار الصورة<input id="heroImageUrl" type="text" inputmode="url" placeholder="https://... أو assets/image.webp"></label><div id="heroImagePreview" class="image-preview hidden"></div><button type="submit">حفظ الهوية والواجهة</button><p id="brandingMsg" class="msg"></p></form></section><section class="panel"><h2>معاينة سريعة</h2><div class="brand-preview"><div id="brandPreviewLogo" class="brand-preview-logo">ن</div><span id="brandPreviewBadge" class="badge">جمعية نور الأمل</span><h3 id="brandPreviewTitle">نحو فرص جديدة للتعلم والتأهيل والاندماج</h3><p id="brandPreviewText"></p><img id="brandPreviewHero" class="brand-preview-hero" alt="معاينة صورة الواجهة"></div></section></div>`;
 
   adminView.append(messagesPanel,brandingPanel);
 
@@ -73,8 +73,20 @@
     setPreview(Object.fromEntries((data||[]).map(x=>[x.key,x.value])));
   }
 
-  document.getElementById('brandingLogoFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);document.getElementById('brandingLogoPreview').innerHTML=`<img src="${u}" alt="معاينة الشعار">`;document.getElementById('brandingLogoPreview').classList.remove('hidden')});
-  document.getElementById('heroImageFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);document.getElementById('heroImagePreview').innerHTML=`<img src="${u}" alt="معاينة الواجهة">`;document.getElementById('heroImagePreview').classList.remove('hidden')});
+  document.getElementById('brandingLogoFile')?.addEventListener('change',e=>{
+    const f=e.target.files[0];if(!f)return;
+    document.getElementById('brandingLogoUrl').value='';
+    const u=URL.createObjectURL(f);
+    document.getElementById('brandingLogoPreview').innerHTML=`<img src="${u}" alt="معاينة الشعار">`;
+    document.getElementById('brandingLogoPreview').classList.remove('hidden');
+  });
+  document.getElementById('heroImageFile')?.addEventListener('change',e=>{
+    const f=e.target.files[0];if(!f)return;
+    document.getElementById('heroImageUrl').value='';
+    const u=URL.createObjectURL(f);
+    document.getElementById('heroImagePreview').innerHTML=`<img src="${u}" alt="معاينة الواجهة">`;
+    document.getElementById('heroImagePreview').classList.remove('hidden');
+  });
 
   document.getElementById('brandingForm')?.addEventListener('submit',async e=>{
     e.preventDefault();
