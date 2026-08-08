@@ -123,3 +123,10 @@
   client.auth.onAuthStateChange(()=>initManagers());
   initManagers();
 })();
+
+if(!document.querySelector('script[data-report-extended]')){
+  const extended=document.createElement('script');
+  extended.src='admin-reports-extended.js?v=20260808-2247';
+  extended.dataset.reportExtended='1';
+  document.body.appendChild(extended);
+}
