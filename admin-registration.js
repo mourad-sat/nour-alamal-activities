@@ -84,9 +84,3 @@
   client.auth.onAuthStateChange(()=>loadRegistrationAdmin());
   loadRegistrationAdmin();
 })();
-
-if(!document.querySelector('script[src="admin-managers.js"]')){
-  const managersScript=document.createElement('script');
-  managersScript.src='admin-managers.js';
-  document.body.appendChild(managersScript);
-}
