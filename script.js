@@ -8,3 +8,18 @@ document.getElementById('filters')?.addEventListener('click',e=>{const b=e.targe
 const counters=document.querySelectorAll('[data-count]');const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;const el=entry.target,target=Number(el.dataset.count);let n=0;const t=setInterval(()=>{n++;el.textContent=Math.min(n,target);if(n>=target)clearInterval(t)},70);observer.unobserve(el)}),{threshold:.6});counters.forEach(x=>observer.observe(x));
 
 document.getElementById('contactForm')?.addEventListener('submit',e=>{e.preventDefault();document.getElementById('formNote').textContent='النموذج جاهز من جهة الواجهة. سنربطه لاحقاً بالبريد أو بخدمة استقبال الرسائل.'});
+
+// الأخبار/المنشورات من Supabase
+const SUPABASE_URL='https://eabplnfgisdnlylwqrkb.supabase.co';
+const SUPABASE_KEY='sb_publishable_Z7p9pwNVhzehV_ebSTMGCA_S0szQ4yF';
+async function loadPosts(){
+  const box=document.querySelector('.news'); if(!box)return;
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/posts?select=id,title,excerpt,image_url,category,published_at&published=eq.true&order=published_at.desc`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
+    if(!res.ok)throw new Error('posts');
+    const posts=await res.json();
+    if(!posts.length){box.innerHTML='<article><small>لا توجد منشورات</small><h3>سيتم نشر المستجدات هنا</h3><p>يمكن للمدير إضافة أول منشور من لوحة الإدارة.</p></article>';return}
+    box.innerHTML=posts.map(p=>`<article>${p.image_url?`<img src="${p.image_url}" alt="${p.title}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;margin-bottom:12px">`:''}<small>${new Date(p.published_at).toLocaleDateString('ar-MA')}</small><h3>${p.title}</h3><p>${p.excerpt||''}</p></article>`).join('');
+  }catch(e){console.error(e)}
+}
+loadPosts();
