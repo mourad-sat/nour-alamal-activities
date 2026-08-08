@@ -146,3 +146,10 @@ if(!document.querySelector('script[data-association-tasks]')){
   tasksScript.dataset.associationTasks='1';
   document.body.appendChild(tasksScript);
 }
+
+if(!document.querySelector('script[data-technical-cards]')){
+  const cardsScript=document.createElement('script');
+  cardsScript.src='admin-technical-cards.js?v=20260809-0020';
+  cardsScript.dataset.technicalCards='1';
+  document.body.appendChild(cardsScript);
+}
