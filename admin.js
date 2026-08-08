@@ -1,75 +1,40 @@
 const SUPABASE_URL='https://eabplnfgisdnlylwqrkb.supabase.co';
 const SUPABASE_KEY='sb_publishable_Z7p9pwNVhzehV_ebSTMGCA_S0szQ4yF';
 const client=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-const loginView=document.getElementById('loginView');
-const adminView=document.getElementById('adminView');
-const logoutBtn=document.getElementById('logoutBtn');
-const loginForm=document.getElementById('loginForm');
-const postForm=document.getElementById('postForm');
-const postsList=document.getElementById('postsList');
-const formMsg=document.getElementById('formMsg');
-let cache=[];
-
-const signupBtn=document.createElement('button');
-signupBtn.type='button';
-signupBtn.className='secondary';
-signupBtn.style.marginTop='10px';
-signupBtn.style.width='100%';
-signupBtn.textContent='إنشاء حساب المدير لأول مرة';
-loginForm.querySelector('button[type="submit"]').insertAdjacentElement('afterend',signupBtn);
+const $=id=>document.getElementById(id);
+const loginView=$('loginView'),adminView=$('adminView'),logoutBtn=$('logoutBtn'),loginForm=$('loginForm'),postForm=$('postForm'),postsList=$('postsList'),formMsg=$('formMsg');
+let postsCache=[],galleryCache=[];
 
 function showAdmin(on){loginView.classList.toggle('hidden',on);adminView.classList.toggle('hidden',!on);logoutBtn.classList.toggle('hidden',!on)}
 function localDateValue(d=new Date()){const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`}
-function resetForm(){postForm.reset();document.getElementById('postId').value='';document.getElementById('published').checked=true;document.getElementById('publishedAt').value=localDateValue();document.getElementById('formTitle').textContent='منشور جديد';formMsg.textContent=''}
+function escapeHtml(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function resetPostForm(){postForm.reset();$('postId').value='';$('published').checked=true;$('publishedAt').value=localDateValue();$('formTitle').textContent='منشور جديد';$('postImagePreview').classList.add('hidden');$('postImagePreview').innerHTML='';formMsg.textContent=''}
+function resetGalleryForm(){$('galleryForm').reset();$('galleryId').value='';$('galleryOrder').value=0;$('galleryPublished').checked=true;$('galleryMsg').textContent=''}
 
-async function isAdmin(){
-  const {data:{user}}=await client.auth.getUser();
-  if(!user)return false;
-  let {data,error}=await client.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();
-  if(!error&&data)return true;
-  const claim=await client.rpc('claim_admin');
-  if(claim.error||claim.data!==true)return false;
-  ({data,error}=await client.from('admins').select('user_id').eq('user_id',user.id).maybeSingle());
-  return !error&&!!data;
-}
-async function boot(){const ok=await isAdmin();showAdmin(ok);if(ok){resetForm();await loadPosts()}}
+async function isAdmin(){const {data:{user}}=await client.auth.getUser();if(!user)return false;const {data,error}=await client.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();return !error&&!!data}
+async function boot(){const ok=await isAdmin();showAdmin(ok);if(ok){resetPostForm();resetGalleryForm();await Promise.all([loadPosts(),loadGallery(),loadSettings()])}}
 
-loginForm.addEventListener('submit',async e=>{
-  e.preventDefault();
-  const msg=document.getElementById('loginMsg');
-  msg.textContent='جارٍ التحقق...';
-  const email=document.getElementById('email').value.trim();
-  const password=document.getElementById('password').value;
-  const {error}=await client.auth.signInWithPassword({email,password});
-  if(error){msg.textContent='تعذر تسجيل الدخول. تحقق من البريد وكلمة المرور.';return}
-  if(!(await isAdmin())){await client.auth.signOut();msg.textContent='هذا البريد غير معتمد لإدارة الموقع.';return}
-  msg.textContent='';showAdmin(true);resetForm();await loadPosts();
-});
-
-signupBtn.addEventListener('click',async()=>{
-  const msg=document.getElementById('loginMsg');
-  const email=document.getElementById('email').value.trim();
-  const password=document.getElementById('password').value;
-  if(!email||!password){msg.textContent='أدخل البريد وكلمة المرور التي تريد استعمالها أولاً.';return}
-  if(password.length<6){msg.textContent='اختر كلمة مرور من 6 أحرف على الأقل.';return}
-  msg.textContent='جارٍ إنشاء الحساب...';
-  const {data,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:window.location.href}});
-  if(error){msg.textContent=error.message.includes('already')?'الحساب موجود بالفعل. استعمل زر دخول.':'تعذر إنشاء الحساب: '+error.message;return}
-  if(data.session){
-    if(await isAdmin()){msg.textContent='تم إنشاء حساب المدير بنجاح.';showAdmin(true);resetForm();await loadPosts();return}
-  }
-  msg.textContent='تم إنشاء الحساب. افتح رسالة التأكيد التي أرسلها Supabase إلى بريدك، ثم ارجع وسجّل الدخول.';
-});
-
+loginForm.addEventListener('submit',async e=>{e.preventDefault();const msg=$('loginMsg');msg.textContent='جارٍ التحقق...';const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){msg.textContent='تعذر تسجيل الدخول. تحقق من البريد وكلمة المرور.';return}if(!(await isAdmin())){await client.auth.signOut();msg.textContent='هذا الحساب ليس ضمن مديري الموقع.';return}msg.textContent='';await boot()});
+$('resetPasswordBtn').addEventListener('click',async()=>{const email=$('email').value.trim(),msg=$('loginMsg');if(!email){msg.textContent='أدخل البريد الإلكتروني أولاً.';return}const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.href});msg.textContent=error?'تعذر إرسال رابط الاسترجاع.':'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك.'});
 logoutBtn.addEventListener('click',async()=>{await client.auth.signOut();showAdmin(false)});
 
-async function loadPosts(){postsList.innerHTML='<p>جارٍ التحميل...</p>';const {data,error}=await client.from('posts').select('*').order('published_at',{ascending:false});if(error){postsList.innerHTML='<p>تعذر تحميل المنشورات.</p>';return}cache=data||[];postsList.innerHTML=cache.length?cache.map(p=>`<article class="post-item"><div class="post-top"><div><h3>${escapeHtml(p.title)}</h3><small>${new Date(p.published_at).toLocaleString('ar-MA')}</small></div><span class="status ${p.published?'published':'draft'}">${p.published?'منشور':'مسودة'}</span></div><div class="post-actions"><button data-edit="${p.id}">تعديل</button><button data-toggle="${p.id}" class="secondary">${p.published?'إخفاء':'نشر'}</button><button data-delete="${p.id}" class="danger">حذف</button></div></article>`).join(''):'<p>لا توجد منشورات بعد.</p>'}
-function escapeHtml(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(!b)return;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('hidden',p.dataset.panel!==b.dataset.tab))});
 
-postForm.addEventListener('submit',async e=>{e.preventDefault();formMsg.textContent='جارٍ الحفظ...';const id=document.getElementById('postId').value;const payload={title:document.getElementById('title').value.trim(),excerpt:document.getElementById('excerpt').value.trim(),content:document.getElementById('content').value.trim(),category:document.getElementById('category').value,image_url:document.getElementById('imageUrl').value.trim()||null,published:document.getElementById('published').checked,published_at:new Date(document.getElementById('publishedAt').value).toISOString()};let error;if(id){({error}=await client.from('posts').update(payload).eq('id',id))}else{({error}=await client.from('posts').insert(payload))}if(error){formMsg.textContent='حدث خطأ أثناء الحفظ.';return}formMsg.textContent='تم الحفظ بنجاح.';resetForm();await loadPosts()});
+async function uploadImage(file,folder){if(!file)return null;if(file.size>5*1024*1024)throw new Error('الصورة أكبر من 5MB');const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=`${folder}/${Date.now()}-${crypto.randomUUID()}.${ext}`;const {error}=await client.storage.from('site-media').upload(path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return client.storage.from('site-media').getPublicUrl(path).data.publicUrl}
 
-document.getElementById('newBtn').addEventListener('click',()=>{resetForm();window.scrollTo({top:0,behavior:'smooth'})});document.getElementById('cancelBtn').addEventListener('click',resetForm);document.getElementById('refreshBtn').addEventListener('click',loadPosts);
-postsList.addEventListener('click',async e=>{const edit=e.target.dataset.edit,toggle=e.target.dataset.toggle,del=e.target.dataset.delete;if(edit){const p=cache.find(x=>String(x.id)===String(edit));if(!p)return;document.getElementById('postId').value=p.id;document.getElementById('title').value=p.title||'';document.getElementById('excerpt').value=p.excerpt||'';document.getElementById('content').value=p.content||'';document.getElementById('category').value=p.category||'community';document.getElementById('imageUrl').value=p.image_url||'';document.getElementById('published').checked=!!p.published;document.getElementById('publishedAt').value=localDateValue(new Date(p.published_at));document.getElementById('formTitle').textContent='تعديل المنشور';window.scrollTo({top:0,behavior:'smooth'})}if(toggle){const p=cache.find(x=>String(x.id)===String(toggle));if(!p)return;await client.from('posts').update({published:!p.published}).eq('id',p.id);await loadPosts()}if(del){if(!confirm('هل تريد حذف هذا المنشور نهائياً؟'))return;await client.from('posts').delete().eq('id',del);await loadPosts()}});
+async function loadPosts(){postsList.innerHTML='<p>جارٍ التحميل...</p>';const {data,error}=await client.from('posts').select('*').order('published_at',{ascending:false});if(error){postsList.innerHTML='<p>تعذر تحميل المنشورات.</p>';return}postsCache=data||[];postsList.innerHTML=postsCache.length?postsCache.map(p=>`<article class="post-item"><div class="post-top"><div><h3>${escapeHtml(p.title)}</h3><small>${new Date(p.published_at).toLocaleString('ar-MA')}</small></div><span class="status ${p.published?'published':'draft'}">${p.published?'منشور':'مسودة'}</span></div><div class="post-actions"><button data-edit="${p.id}">تعديل</button><button data-toggle="${p.id}" class="secondary">${p.published?'إخفاء':'نشر'}</button><button data-delete="${p.id}" class="danger">حذف</button></div></article>`).join(''):'<div class="empty">لا توجد منشورات بعد.</div>'}
+
+postForm.addEventListener('submit',async e=>{e.preventDefault();formMsg.textContent='جارٍ الحفظ...';try{const id=$('postId').value;let image=$('imageUrl').value.trim()||null;const file=$('postImageFile').files[0];if(file)image=await uploadImage(file,'posts');const payload={title:$('title').value.trim(),excerpt:$('excerpt').value.trim(),content:$('content').value.trim(),category:$('category').value,image_url:image,published:$('published').checked,published_at:new Date($('publishedAt').value).toISOString()};const result=id?await client.from('posts').update(payload).eq('id',id):await client.from('posts').insert(payload);if(result.error)throw result.error;resetPostForm();await loadPosts();formMsg.textContent='تم الحفظ بنجاح.'}catch(err){formMsg.textContent='تعذر الحفظ: '+(err.message||'خطأ غير معروف')}});
+$('postImageFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);$('postImagePreview').innerHTML=`<img src="${u}" alt="معاينة">`;$('postImagePreview').classList.remove('hidden')});
+$('newBtn').addEventListener('click',resetPostForm);$('cancelBtn').addEventListener('click',resetPostForm);$('refreshBtn').addEventListener('click',loadPosts);
+postsList.addEventListener('click',async e=>{const edit=e.target.dataset.edit,toggle=e.target.dataset.toggle,del=e.target.dataset.delete;if(edit){const p=postsCache.find(x=>String(x.id)===String(edit));if(!p)return;$('postId').value=p.id;$('title').value=p.title||'';$('excerpt').value=p.excerpt||'';$('content').value=p.content||'';$('category').value=p.category||'community';$('imageUrl').value=p.image_url||'';$('published').checked=!!p.published;$('publishedAt').value=localDateValue(new Date(p.published_at));$('formTitle').textContent='تعديل المنشور';if(p.image_url){$('postImagePreview').innerHTML=`<img src="${p.image_url}" alt="معاينة">`;$('postImagePreview').classList.remove('hidden')}scrollTo({top:0,behavior:'smooth'})}if(toggle){const p=postsCache.find(x=>String(x.id)===String(toggle));if(p){await client.from('posts').update({published:!p.published}).eq('id',p.id);await loadPosts()}}if(del&&confirm('هل تريد حذف هذا المنشور نهائياً؟')){await client.from('posts').delete().eq('id',del);await loadPosts()}});
+
+async function loadGallery(){const box=$('galleryList');box.innerHTML='<p>جارٍ التحميل...</p>';const {data,error}=await client.from('gallery_items').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:false});if(error){box.innerHTML='<p>تعذر تحميل الصور.</p>';return}galleryCache=data||[];box.innerHTML=galleryCache.length?galleryCache.map(g=>`<article class="gallery-admin-item"><img src="${g.image_url}" alt="${escapeHtml(g.title)}"><div class="body"><h3>${escapeHtml(g.title||'بدون عنوان')}</h3><span class="status ${g.published?'published':'draft'}">${g.published?'ظاهرة':'مخفية'}</span><div class="actions"><button data-g-edit="${g.id}">تعديل</button><button data-g-toggle="${g.id}" class="secondary">${g.published?'إخفاء':'إظهار'}</button><button data-g-delete="${g.id}" class="danger">حذف</button></div></div></article>`).join(''):'<div class="empty">لا توجد صور في المعرض.</div>'}
+$('galleryForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('galleryMsg');msg.textContent='جارٍ الحفظ...';try{const id=$('galleryId').value;let image=$('galleryUrl').value.trim();const file=$('galleryFile').files[0];if(file)image=await uploadImage(file,'gallery');if(!image)throw new Error('اختر صورة أو أدخل رابطاً');const payload={title:$('galleryTitle').value.trim(),image_url:image,sort_order:Number($('galleryOrder').value)||0,published:$('galleryPublished').checked};const result=id?await client.from('gallery_items').update(payload).eq('id',id):await client.from('gallery_items').insert(payload);if(result.error)throw result.error;resetGalleryForm();await loadGallery();msg.textContent='تم حفظ الصورة.'}catch(err){msg.textContent='تعذر الحفظ: '+(err.message||'خطأ')}});
+$('galleryCancel').addEventListener('click',resetGalleryForm);$('galleryRefresh').addEventListener('click',loadGallery);
+$('galleryList').addEventListener('click',async e=>{const edit=e.target.dataset.gEdit,toggle=e.target.dataset.gToggle,del=e.target.dataset.gDelete;if(edit){const g=galleryCache.find(x=>String(x.id)===String(edit));if(!g)return;$('galleryId').value=g.id;$('galleryTitle').value=g.title||'';$('galleryUrl').value=g.image_url||'';$('galleryOrder').value=g.sort_order||0;$('galleryPublished').checked=!!g.published}if(toggle){const g=galleryCache.find(x=>String(x.id)===String(toggle));if(g){await client.from('gallery_items').update({published:!g.published}).eq('id',g.id);await loadGallery()}}if(del&&confirm('هل تريد حذف هذه الصورة من المعرض؟')){await client.from('gallery_items').delete().eq('id',del);await loadGallery()}});
+
+async function loadSettings(){const {data,error}=await client.from('site_settings').select('key,value');if(error)return;const map=Object.fromEntries((data||[]).map(x=>[x.key,x.value]));$('settingAddress').value=map.address||'';$('settingEmail').value=map.email||'';$('settingPhone').value=map.phone||''}
+$('settingsForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('settingsMsg');msg.textContent='جارٍ الحفظ...';const rows=[{key:'address',value:$('settingAddress').value.trim()},{key:'email',value:$('settingEmail').value.trim()},{key:'phone',value:$('settingPhone').value.trim()}];const {error}=await client.from('site_settings').upsert(rows,{onConflict:'key'});msg.textContent=error?'تعذر حفظ البيانات.':'تم حفظ بيانات التواصل بنجاح.'});
 
 client.auth.onAuthStateChange(()=>boot());boot();
