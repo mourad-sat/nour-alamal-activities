@@ -95,6 +95,51 @@ function applyBranding(map){
   const image=document.querySelector('.hero-card > img');if(image&&map.hero_image_url)image.src=map.hero_image_url;
 }
 
+function applyRegistration(map){
+  const section=document.getElementById('registration');if(!section)return;
+  const open=map.registration_open!=='false';
+  const badge=section.querySelector('.registration-badge');
+  const year=section.querySelector('.registration-year');
+  const title=section.querySelector('.registration-copy > h2');
+  const hookTitle=section.querySelector('.registration-hook strong');
+  const hookText=section.querySelector('.registration-hook span');
+  const description=section.querySelector('.registration-hook + p');
+  const registerBtn=section.querySelector('.register-btn');
+  const phoneBtns=section.querySelectorAll('.phone-btn');
+  const note=section.querySelector('.registration-note');
+  const benefits=section.querySelector('.registration-benefits ul');
+  const heroRegister=document.querySelector('.hero .actions .primary');
+
+  if(badge)badge.textContent=open?'📢 التسجيل مفتوح':'⏸️ التسجيل مغلق حالياً';
+  if(year&&map.registration_year)year.textContent='الموسم الدراسي '+map.registration_year;
+  if(title&&map.registration_title)title.textContent=map.registration_title;
+  if(hookTitle&&map.registration_hook_title)hookTitle.textContent=map.registration_hook_title;
+  if(hookText&&map.registration_hook_text)hookText.textContent=map.registration_hook_text;
+  if(description&&map.registration_description)description.textContent=map.registration_description;
+  if(note&&map.registration_note)note.innerHTML='🌱 '+esc(map.registration_note);
+
+  if(registerBtn){
+    registerBtn.style.display=open?'inline-flex':'none';
+    if(map.registration_link)registerBtn.href=map.registration_link;
+  }
+  if(heroRegister){heroRegister.textContent=open?`التسجيل مفتوح ${map.registration_year||''}`.trim():'التسجيل مغلق حالياً';heroRegister.href='#registration'}
+
+  const phones=[map.registration_phone_1,map.registration_phone_2];
+  phoneBtns.forEach((btn,i)=>{
+    const p=phones[i]||'';
+    btn.style.display=p?'inline-flex':'none';
+    if(p){btn.textContent='☎️ '+p;btn.href='tel:'+p.replace(/[^+\d]/g,'')}
+  });
+
+  if(benefits&&map.registration_benefits){
+    const icons=['📚','🛠️','🧭','💡','🤝','🌱','🎯','🚀'];
+    const rows=map.registration_benefits.split(/\n+/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split('|');return {title:(parts.shift()||'').trim(),text:parts.join('|').trim()}});
+    benefits.innerHTML=rows.map((b,i)=>`<li><span>${icons[i%icons.length]}</span><div><b>${esc(b.title)}</b><small>${esc(b.text)}</small></div></li>`).join('');
+  }
+
+  section.dataset.registrationOpen=String(open);
+}
+
 async function loadSettings(){
   try{
     const res=await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=key,value`,{headers});if(!res.ok)throw new Error('settings');
@@ -102,6 +147,7 @@ async function loadSettings(){
     if(items[0]&&map.address)items[0].textContent=map.address;if(items[1]&&map.email)items[1].textContent=map.email;if(items[2]&&map.phone)items[2].textContent=map.phone;
     const p=document.querySelector('#contact .contact-grid > div > p');if(p&&(map.address||map.email||map.phone))p.textContent='يسعدنا استقبال استفساراتكم ومقترحات التعاون والمشاركة في البرامج.';
     applyBranding(map);
+    applyRegistration(map);
   }catch(e){console.error(e)}
 }
 
