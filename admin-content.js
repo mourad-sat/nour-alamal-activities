@@ -153,10 +153,3 @@ if(!document.querySelector('script[data-technical-cards]')){
   cardsScript.dataset.technicalCards='1';
   document.body.appendChild(cardsScript);
 }
-
-if(!document.querySelector('script[data-technical-cards-export]')){
-  const exportScript=document.createElement('script');
-  exportScript.src='admin-technical-cards-export.js?v=20260809-0026';
-  exportScript.dataset.technicalCardsExport='1';
-  document.body.appendChild(exportScript);
-}
