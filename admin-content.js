@@ -125,3 +125,10 @@ if(!document.querySelector('script[data-direct-managers]')){
   managersScript.dataset.directManagers='1';
   document.body.appendChild(managersScript);
 }
+
+if(!document.querySelector('script[data-governance-finance]')){
+  const financeScript=document.createElement('script');
+  financeScript.src='admin-finance.js?v=20260808-2342';
+  financeScript.dataset.governanceFinance='1';
+  document.body.appendChild(financeScript);
+}
