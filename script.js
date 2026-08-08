@@ -7,19 +7,16 @@ document.getElementById('filters')?.addEventListener('click',e=>{const b=e.targe
 
 const counters=document.querySelectorAll('[data-count]');const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;const el=entry.target,target=Number(el.dataset.count);let n=0;const t=setInterval(()=>{n++;el.textContent=Math.min(n,target);if(n>=target)clearInterval(t)},70);observer.unobserve(el)}),{threshold:.6});counters.forEach(x=>observer.observe(x));
 
-document.getElementById('contactForm')?.addEventListener('submit',e=>{e.preventDefault();document.getElementById('formNote').textContent='النموذج جاهز من جهة الواجهة. سنربطه لاحقاً بالبريد أو بخدمة استقبال الرسائل.'});
+document.getElementById('contactForm')?.addEventListener('submit',e=>{e.preventDefault();document.getElementById('formNote').textContent='شكراً لتواصلكم. نموذج استقبال الرسائل سيُربط بالبريد الرسمي في مرحلة لاحقة.'});
 
-// الأخبار/المنشورات من Supabase
 const SUPABASE_URL='https://eabplnfgisdnlylwqrkb.supabase.co';
 const SUPABASE_KEY='sb_publishable_Z7p9pwNVhzehV_ebSTMGCA_S0szQ4yF';
-async function loadPosts(){
-  const box=document.querySelector('.news'); if(!box)return;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/posts?select=id,title,excerpt,image_url,category,published_at&published=eq.true&order=published_at.desc`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
-    if(!res.ok)throw new Error('posts');
-    const posts=await res.json();
-    if(!posts.length){box.innerHTML='<article><small>لا توجد منشورات</small><h3>سيتم نشر المستجدات هنا</h3><p>يمكن للمدير إضافة أول منشور من لوحة الإدارة.</p></article>';return}
-    box.innerHTML=posts.map(p=>`<article>${p.image_url?`<img src="${p.image_url}" alt="${p.title}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;margin-bottom:12px">`:''}<small>${new Date(p.published_at).toLocaleDateString('ar-MA')}</small><h3>${p.title}</h3><p>${p.excerpt||''}</p></article>`).join('');
-  }catch(e){console.error(e)}
-}
-loadPosts();
+const headers={apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
+
+async function loadPosts(){const box=document.querySelector('.news');if(!box)return;try{const res=await fetch(`${SUPABASE_URL}/rest/v1/posts?select=id,title,excerpt,image_url,category,published_at&published=eq.true&order=published_at.desc`,{headers});if(!res.ok)throw new Error('posts');const posts=await res.json();if(!posts.length){box.innerHTML='<article><small>لا توجد منشورات</small><h3>سيتم نشر المستجدات هنا</h3><p>يمكن للمدير إضافة أول منشور من لوحة الإدارة.</p></article>';return}box.innerHTML=posts.map(p=>`<article>${p.image_url?`<img src="${p.image_url}" alt="${p.title}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;margin-bottom:12px">`:''}<small>${new Date(p.published_at).toLocaleDateString('ar-MA')}</small><h3>${p.title}</h3><p>${p.excerpt||''}</p></article>`).join('')}catch(e){console.error(e)}}
+
+async function loadGallery(){const box=document.querySelector('#gallery .gallery');if(!box)return;try{const res=await fetch(`${SUPABASE_URL}/rest/v1/gallery_items?select=id,title,image_url,sort_order&published=eq.true&order=sort_order.asc,created_at.desc`,{headers});if(!res.ok)throw new Error('gallery');const items=await res.json();if(!items.length)return;box.innerHTML=items.map((g,i)=>`<figure class="${i===0?'big':''}"><img src="${g.image_url}" alt="${g.title||'صورة من أنشطة الجمعية'}" loading="lazy"><figcaption>${g.title||'من أنشطة جمعية نور الأمل'}</figcaption></figure>`).join('');const note=document.querySelector('#gallery .head p');if(note)note.textContent='صور حقيقية من أنشطة وبرامج الجمعية.'}catch(e){console.error(e)}}
+
+async function loadSettings(){try{const res=await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=key,value`,{headers});if(!res.ok)throw new Error('settings');const rows=await res.json();const map=Object.fromEntries(rows.map(x=>[x.key,x.value]));const items=document.querySelectorAll('#contact .contact-items > div small');if(items[0]&&map.address)items[0].textContent=map.address;if(items[1]&&map.email)items[1].textContent=map.email;if(items[2]&&map.phone)items[2].textContent=map.phone;const p=document.querySelector('#contact .contact-grid > div > p');if(p&&(map.address||map.email||map.phone))p.textContent='يسعدنا استقبال استفساراتكم ومقترحات التعاون والمشاركة في البرامج.'}catch(e){console.error(e)}}
+
+Promise.all([loadPosts(),loadGallery(),loadSettings()]);
