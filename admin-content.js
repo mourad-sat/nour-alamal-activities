@@ -116,33 +116,33 @@ client.auth.onAuthStateChange(()=>initContentAdmin());
 initContentAdmin();
 
 const advancedAdminScript=document.createElement('script');
-advancedAdminScript.src='admin-advanced.js';
+advancedAdminScript.src='admin-advanced.js?v=20260809-0011';
 document.body.appendChild(advancedAdminScript);
 
 if(!document.querySelector('script[data-direct-managers]')){
   const managersScript=document.createElement('script');
-  managersScript.src='admin-managers.js?v=20260808-2143';
+  managersScript.src='admin-managers.js?v=20260809-0011';
   managersScript.dataset.directManagers='1';
   document.body.appendChild(managersScript);
 }
 
 if(!document.querySelector('script[data-governance-finance]')){
   const financeScript=document.createElement('script');
-  financeScript.src='admin-finance.js?v=20260808-2342';
+  financeScript.src='admin-finance.js?v=20260809-0011';
   financeScript.dataset.governanceFinance='1';
   document.body.appendChild(financeScript);
 }
 
 if(!document.querySelector('script[data-main-dashboard]')){
   const dashboardScript=document.createElement('script');
-  dashboardScript.src='admin-dashboard.js?v=20260808-2348';
+  dashboardScript.src='admin-dashboard.js?v=20260809-0011';
   dashboardScript.dataset.mainDashboard='1';
   document.body.appendChild(dashboardScript);
 }
 
 if(!document.querySelector('script[data-association-tasks]')){
   const tasksScript=document.createElement('script');
-  tasksScript.src='admin-tasks.js?v=20260808-2356';
+  tasksScript.src='admin-tasks.js?v=20260809-0011';
   tasksScript.dataset.associationTasks='1';
   document.body.appendChild(tasksScript);
 }
