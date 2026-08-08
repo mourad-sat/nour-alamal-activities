@@ -57,3 +57,4 @@
 
 if(!document.querySelector('script[data-report-extended]')){const extended=document.createElement('script');extended.src='admin-reports-extended.js?v=20260808-2247';extended.dataset.reportExtended='1';document.body.appendChild(extended)}
 if(!document.querySelector('script[data-report-official]')){const official=document.createElement('script');official.src='admin-report-official.js?v=20260808-2253';official.dataset.reportOfficial='1';document.body.appendChild(official)}
+if(!document.querySelector('script[data-report-analytics]')){const analytics=document.createElement('script');analytics.src='admin-report-analytics.js?v=20260808-2332';analytics.dataset.reportAnalytics='1';document.body.appendChild(analytics)}
