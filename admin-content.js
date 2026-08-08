@@ -153,3 +153,10 @@ if(!document.querySelector('script[data-technical-cards]')){
   cardsScript.dataset.technicalCards='1';
   document.body.appendChild(cardsScript);
 }
+
+if(!document.querySelector('script[data-technical-card-form-actions]')){
+  const formActionsScript=document.createElement('script');
+  formActionsScript.src='admin-technical-cards-form-actions.js?v=20260809-0035';
+  formActionsScript.dataset.technicalCardFormActions='1';
+  document.body.appendChild(formActionsScript);
+}
