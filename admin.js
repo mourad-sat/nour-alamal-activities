@@ -11,14 +11,57 @@ const postsList=document.getElementById('postsList');
 const formMsg=document.getElementById('formMsg');
 let cache=[];
 
+const signupBtn=document.createElement('button');
+signupBtn.type='button';
+signupBtn.className='secondary';
+signupBtn.style.marginTop='10px';
+signupBtn.style.width='100%';
+signupBtn.textContent='إنشاء حساب المدير لأول مرة';
+loginForm.querySelector('button[type="submit"]').insertAdjacentElement('afterend',signupBtn);
+
 function showAdmin(on){loginView.classList.toggle('hidden',on);adminView.classList.toggle('hidden',!on);logoutBtn.classList.toggle('hidden',!on)}
 function localDateValue(d=new Date()){const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`}
 function resetForm(){postForm.reset();document.getElementById('postId').value='';document.getElementById('published').checked=true;document.getElementById('publishedAt').value=localDateValue();document.getElementById('formTitle').textContent='منشور جديد';formMsg.textContent=''}
 
-async function isAdmin(){const {data:{user}}=await client.auth.getUser();if(!user)return false;const {data,error}=await client.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();return !error&&!!data}
+async function isAdmin(){
+  const {data:{user}}=await client.auth.getUser();
+  if(!user)return false;
+  let {data,error}=await client.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();
+  if(!error&&data)return true;
+  const claim=await client.rpc('claim_admin');
+  if(claim.error||claim.data!==true)return false;
+  ({data,error}=await client.from('admins').select('user_id').eq('user_id',user.id).maybeSingle());
+  return !error&&!!data;
+}
 async function boot(){const ok=await isAdmin();showAdmin(ok);if(ok){resetForm();await loadPosts()}}
 
-loginForm.addEventListener('submit',async e=>{e.preventDefault();const msg=document.getElementById('loginMsg');msg.textContent='جارٍ التحقق...';const email=document.getElementById('email').value.trim();const password=document.getElementById('password').value;const {error}=await client.auth.signInWithPassword({email,password});if(error){msg.textContent='تعذر تسجيل الدخول. تحقق من البريد وكلمة المرور.';return}if(!(await isAdmin())){await client.auth.signOut();msg.textContent='هذا الحساب ليس ضمن مديري الموقع.';return}msg.textContent='';showAdmin(true);resetForm();await loadPosts()});
+loginForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const msg=document.getElementById('loginMsg');
+  msg.textContent='جارٍ التحقق...';
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+  const {error}=await client.auth.signInWithPassword({email,password});
+  if(error){msg.textContent='تعذر تسجيل الدخول. تحقق من البريد وكلمة المرور.';return}
+  if(!(await isAdmin())){await client.auth.signOut();msg.textContent='هذا البريد غير معتمد لإدارة الموقع.';return}
+  msg.textContent='';showAdmin(true);resetForm();await loadPosts();
+});
+
+signupBtn.addEventListener('click',async()=>{
+  const msg=document.getElementById('loginMsg');
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+  if(!email||!password){msg.textContent='أدخل البريد وكلمة المرور التي تريد استعمالها أولاً.';return}
+  if(password.length<6){msg.textContent='اختر كلمة مرور من 6 أحرف على الأقل.';return}
+  msg.textContent='جارٍ إنشاء الحساب...';
+  const {data,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:window.location.href}});
+  if(error){msg.textContent=error.message.includes('already')?'الحساب موجود بالفعل. استعمل زر دخول.':'تعذر إنشاء الحساب: '+error.message;return}
+  if(data.session){
+    if(await isAdmin()){msg.textContent='تم إنشاء حساب المدير بنجاح.';showAdmin(true);resetForm();await loadPosts();return}
+  }
+  msg.textContent='تم إنشاء الحساب. افتح رسالة التأكيد التي أرسلها Supabase إلى بريدك، ثم ارجع وسجّل الدخول.';
+});
+
 logoutBtn.addEventListener('click',async()=>{await client.auth.signOut();showAdmin(false)});
 
 async function loadPosts(){postsList.innerHTML='<p>جارٍ التحميل...</p>';const {data,error}=await client.from('posts').select('*').order('published_at',{ascending:false});if(error){postsList.innerHTML='<p>تعذر تحميل المنشورات.</p>';return}cache=data||[];postsList.innerHTML=cache.length?cache.map(p=>`<article class="post-item"><div class="post-top"><div><h3>${escapeHtml(p.title)}</h3><small>${new Date(p.published_at).toLocaleString('ar-MA')}</small></div><span class="status ${p.published?'published':'draft'}">${p.published?'منشور':'مسودة'}</span></div><div class="post-actions"><button data-edit="${p.id}">تعديل</button><button data-toggle="${p.id}" class="secondary">${p.published?'إخفاء':'نشر'}</button><button data-delete="${p.id}" class="danger">حذف</button></div></article>`).join(''):'<p>لا توجد منشورات بعد.</p>'}
