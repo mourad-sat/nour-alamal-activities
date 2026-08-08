@@ -51,7 +51,21 @@ const counters=document.querySelectorAll('[data-count]');
 const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;const el=entry.target,target=Number(el.dataset.count);let n=0;const t=setInterval(()=>{n++;el.textContent=Math.min(n,target);if(n>=target)clearInterval(t)},70);observer.unobserve(el)}),{threshold:.6});
 counters.forEach(x=>observer.observe(x));
 
-document.getElementById('contactForm')?.addEventListener('submit',e=>{e.preventDefault();document.getElementById('formNote').textContent='شكراً لتواصلكم. نموذج استقبال الرسائل سيُربط بالبريد الرسمي في مرحلة لاحقة.'});
+const contactForm=document.getElementById('contactForm');
+contactForm?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const note=document.getElementById('formNote');
+  const button=contactForm.querySelector('button[type="submit"]');
+  const data=new FormData(contactForm);
+  const payload={name:String(data.get('name')||'').trim(),email:String(data.get('email')||'').trim(),subject:String(data.get('subject')||'').trim(),message:String(data.get('message')||'').trim()};
+  if(note)note.textContent='جارٍ إرسال الرسالة...';if(button)button.disabled=true;
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/contact_messages`,{method:'POST',headers:{...headers,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error('send');
+    contactForm.reset();if(note)note.textContent='تم إرسال رسالتك بنجاح. شكراً لتواصلك مع جمعية نور الأمل.';
+  }catch(err){if(note)note.textContent='تعذر إرسال الرسالة حالياً. يرجى المحاولة مرة أخرى.'}
+  finally{if(button)button.disabled=false}
+});
 
 async function loadPosts(){
   const box=document.querySelector('.news');if(!box)return;
@@ -73,12 +87,21 @@ async function loadGallery(){
   }catch(e){console.error(e)}
 }
 
+function applyBranding(map){
+  if(map.logo_url){document.querySelectorAll('.brand .logo').forEach(box=>{box.innerHTML=`<img src="${esc(map.logo_url)}" alt="شعار جمعية نور الأمل" style="width:100%;height:100%;object-fit:contain">`})}
+  const badge=document.querySelector('.hero .pill');if(badge&&map.hero_badge)badge.textContent=map.hero_badge;
+  const title=document.querySelector('.hero h1');if(title&&map.hero_title)title.textContent=map.hero_title;
+  const text=document.querySelector('.hero-grid > div > p');if(text&&map.hero_text)text.textContent=map.hero_text;
+  const image=document.querySelector('.hero-card > img');if(image&&map.hero_image_url)image.src=map.hero_image_url;
+}
+
 async function loadSettings(){
   try{
     const res=await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=key,value`,{headers});if(!res.ok)throw new Error('settings');
     const rows=await res.json();const map=Object.fromEntries(rows.map(x=>[x.key,x.value]));const items=document.querySelectorAll('#contact .contact-items > div small');
     if(items[0]&&map.address)items[0].textContent=map.address;if(items[1]&&map.email)items[1].textContent=map.email;if(items[2]&&map.phone)items[2].textContent=map.phone;
     const p=document.querySelector('#contact .contact-grid > div > p');if(p&&(map.address||map.email||map.phone))p.textContent='يسعدنا استقبال استفساراتكم ومقترحات التعاون والمشاركة في البرامج.';
+    applyBranding(map);
   }catch(e){console.error(e)}
 }
 
