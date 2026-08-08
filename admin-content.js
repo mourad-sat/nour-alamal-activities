@@ -132,3 +132,10 @@ if(!document.querySelector('script[data-governance-finance]')){
   financeScript.dataset.governanceFinance='1';
   document.body.appendChild(financeScript);
 }
+
+if(!document.querySelector('script[data-main-dashboard]')){
+  const dashboardScript=document.createElement('script');
+  dashboardScript.src='admin-dashboard.js?v=20260808-2348';
+  dashboardScript.dataset.mainDashboard='1';
+  document.body.appendChild(dashboardScript);
+}
