@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>إدارة الموقع | جمعية نور الأمل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<header class="topbar"><div class="wrap"><a href="index.html">← الموقع</a><strong>لوحة إدارة جمعية نور الأمل</strong><button id="logoutBtn" class="secondary hidden">تسجيل الخروج</button></div></header>
+<main class="wrap main">
+<section id="loginView" class="panel login-panel">
+  <span class="badge">دخول الإدارة</span><h1>إدارة المنشورات</h1><p>أدخل البريد الإلكتروني وكلمة المرور الخاصة بحساب المدير.</p>
+  <form id="loginForm"><label>البريد الإلكتروني<input id="email" type="email" required autocomplete="email"></label><label>كلمة المرور<input id="password" type="password" required autocomplete="current-password"></label><button type="submit">دخول</button><p id="loginMsg" class="msg"></p></form>
+</section>
+<section id="adminView" class="hidden">
+  <div class="admin-head"><div><span class="badge">لوحة التحكم</span><h1>المنشورات</h1><p>أضف أو عدّل أو احذف أي منشور، وحدد هل هو منشور للعامة أم مسودة.</p></div><button id="newBtn">+ منشور جديد</button></div>
+  <div class="admin-grid">
+    <section class="panel editor">
+      <h2 id="formTitle">منشور جديد</h2>
+      <form id="postForm">
+        <input type="hidden" id="postId">
+        <label>العنوان<input id="title" required maxlength="180"></label>
+        <label>الملخص<textarea id="excerpt" rows="3" maxlength="500"></textarea></label>
+        <label>المحتوى الكامل<textarea id="content" rows="8"></textarea></label>
+        <div class="two"><label>التصنيف<select id="category"><option value="education">تربية</option><option value="training">تكوين</option><option value="digital">رقمنة</option><option value="community">مجتمعي</option></select></label><label>تاريخ النشر<input id="publishedAt" type="datetime-local"></label></div>
+        <label>رابط الصورة<input id="imageUrl" type="url" placeholder="https://..."></label>
+        <label class="check"><input id="published" type="checkbox" checked> نشر المنشور للعامة</label>
+        <div class="actions"><button type="submit">حفظ المنشور</button><button type="button" id="cancelBtn" class="secondary">إلغاء التعديل</button></div>
+        <p id="formMsg" class="msg"></p>
+      </form>
+    </section>
+    <section class="panel list-panel"><div class="list-head"><h2>كل المنشورات</h2><button id="refreshBtn" class="secondary">تحديث</button></div><div id="postsList" class="posts-list"><p>جارٍ التحميل...</p></div></section>
+  </div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="admin.js"></script>
+</body></html>
