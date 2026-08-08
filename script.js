@@ -8,7 +8,7 @@ const SUPABASE_URL='https://eabplnfgisdnlylwqrkb.supabase.co';
 const SUPABASE_KEY='sb_publishable_Z7p9pwNVhzehV_ebSTMGCA_S0szQ4yF';
 const headers={apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
 const labels={education:'تربية',training:'تكوين',digital:'رقمنة',community:'مجتمعي'};
-const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
 let activities=[];
 
 function activityDate(a){return a.activity_date?new Date(a.activity_date+'T12:00:00').toLocaleDateString('ar-MA'):'نشاط مستمر'}
@@ -88,7 +88,21 @@ async function loadGallery(){
 }
 
 function applyBranding(map){
-  if(map.logo_url){document.querySelectorAll('.brand .logo').forEach(box=>{box.innerHTML=`<img src="${esc(map.logo_url)}" alt="شعار جمعية نور الأمل" style="width:100%;height:100%;object-fit:contain">`})}
+  if(map.logo_url){
+    document.querySelectorAll('.brand').forEach(brand=>{
+      const box=brand.querySelector('.logo');if(!box)return;
+      const inFooter=!!brand.closest('footer');
+      box.innerHTML=`<img src="${esc(map.logo_url)}" alt="شعار جمعية نور الأمل" style="width:100%;height:100%;object-fit:contain">`;
+      box.style.width=inFooter?'220px':'150px';
+      box.style.height=inFooter?'142px':'96px';
+      box.style.background='transparent';
+      box.style.boxShadow='none';
+      box.style.borderRadius='0';
+      box.style.flex='0 0 auto';
+      const oldText=box.nextElementSibling;if(oldText)oldText.style.display='none';
+    });
+    const navWrap=document.querySelector('.header .nav');if(navWrap)navWrap.style.minHeight='104px';
+  }
   const badge=document.querySelector('.hero .pill');if(badge&&map.hero_badge)badge.textContent=map.hero_badge;
   const title=document.querySelector('.hero h1');if(title&&map.hero_title)title.textContent=map.hero_title;
   const text=document.querySelector('.hero-grid > div > p');if(text&&map.hero_text)text.textContent=map.hero_text;
