@@ -139,3 +139,10 @@ if(!document.querySelector('script[data-main-dashboard]')){
   dashboardScript.dataset.mainDashboard='1';
   document.body.appendChild(dashboardScript);
 }
+
+if(!document.querySelector('script[data-association-tasks]')){
+  const tasksScript=document.createElement('script');
+  tasksScript.src='admin-tasks.js?v=20260808-2356';
+  tasksScript.dataset.associationTasks='1';
+  document.body.appendChild(tasksScript);
+}
