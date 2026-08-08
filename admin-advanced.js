@@ -102,3 +102,9 @@
   client.auth.onAuthStateChange(()=>initAdvanced());
   initAdvanced();
 })();
+
+if(!document.querySelector('script[src="admin-registration.js"]')){
+  const registrationScript=document.createElement('script');
+  registrationScript.src='admin-registration.js';
+  document.body.appendChild(registrationScript);
+}
