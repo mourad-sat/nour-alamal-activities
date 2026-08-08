@@ -1,0 +1,116 @@
+let programsAdminCache=[];
+let activitiesAdminCache=[];
+
+function resetProgramAdminForm(){
+  $('programForm').reset();
+  $('programId').value='';
+  $('programIcon').value='✨';
+  $('programOrder').value=0;
+  $('programPublished').checked=true;
+  $('programFeatured').checked=false;
+  $('programFormTitle').textContent='برنامج جديد';
+  $('programMsg').textContent='';
+}
+
+function resetActivityAdminForm(){
+  $('activityForm').reset();
+  $('activityId').value='';
+  $('activityOrder').value=0;
+  $('activityPublished').checked=true;
+  $('activityFormTitle').textContent='نشاط جديد';
+  $('activityMsg').textContent='';
+}
+
+async function loadProgramsAdmin(){
+  const box=$('programsList');
+  if(!box)return;
+  box.innerHTML='<p>جارٍ التحميل...</p>';
+  const {data,error}=await client.from('programs').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});
+  if(error){box.innerHTML='<p>تعذر تحميل البرامج.</p>';return}
+  programsAdminCache=data||[];
+  box.innerHTML=programsAdminCache.length?programsAdminCache.map(p=>`<article class="post-item"><div class="post-top"><div><h3>${escapeHtml(p.icon||'✨')} ${escapeHtml(p.title)}</h3><small>${escapeHtml(p.label||'برنامج')}</small></div><div><span class="status ${p.published?'published':'draft'}">${p.published?'ظاهر':'مخفي'}</span>${p.featured?'<span class="status featured">مميز</span>':''}</div></div><div class="post-actions"><button data-program-edit="${p.id}">تعديل</button><button data-program-toggle="${p.id}" class="secondary">${p.published?'إخفاء':'إظهار'}</button><button data-program-delete="${p.id}" class="danger">حذف</button></div></article>`).join(''):'<div class="empty">لا توجد برامج بعد.</div>';
+}
+
+async function loadActivitiesAdmin(){
+  const box=$('activitiesList');
+  if(!box)return;
+  box.innerHTML='<p>جارٍ التحميل...</p>';
+  const {data,error}=await client.from('activities').select('*').order('sort_order',{ascending:true}).order('activity_date',{ascending:false,nullsFirst:false});
+  if(error){box.innerHTML='<p>تعذر تحميل الأنشطة.</p>';return}
+  activitiesAdminCache=data||[];
+  box.innerHTML=activitiesAdminCache.length?activitiesAdminCache.map(a=>`<article class="post-item"><div class="thumb-row">${a.image_url?`<img src="${a.image_url}" alt="${escapeHtml(a.title)}">`:''}<div class="grow"><div class="post-top"><div><h3>${escapeHtml(a.title)}</h3><small>${a.activity_date?new Date(a.activity_date+'T12:00:00').toLocaleDateString('ar-MA'):'بدون تاريخ'} · ${escapeHtml(a.category)}</small></div><span class="status ${a.published?'published':'draft'}">${a.published?'ظاهر':'مخفي'}</span></div><div class="post-actions"><button data-activity-edit="${a.id}">تعديل</button><button data-activity-toggle="${a.id}" class="secondary">${a.published?'إخفاء':'إظهار'}</button><button data-activity-delete="${a.id}" class="danger">حذف</button></div></div></div></article>`).join(''):'<div class="empty">لا توجد أنشطة بعد.</div>';
+}
+
+$('programForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const msg=$('programMsg');
+  msg.textContent='جارٍ الحفظ...';
+  try{
+    const id=$('programId').value;
+    let image=$('programImageUrl').value.trim()||null;
+    const file=$('programImageFile').files[0];
+    if(file)image=await uploadImage(file,'programs');
+    const highlights=$('programHighlights').value.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+    const payload={title:$('programTitle').value.trim(),label:$('programLabel').value.trim(),description:$('programDescription').value.trim(),icon:$('programIcon').value.trim()||'✨',highlights,image_url:image,featured:$('programFeatured').checked,sort_order:Number($('programOrder').value)||0,published:$('programPublished').checked};
+    const result=id?await client.from('programs').update(payload).eq('id',id):await client.from('programs').insert(payload);
+    if(result.error)throw result.error;
+    resetProgramAdminForm();
+    await loadProgramsAdmin();
+    msg.textContent='تم حفظ البرنامج.';
+  }catch(err){msg.textContent='تعذر الحفظ: '+(err.message||'خطأ')}
+});
+
+$('programNewBtn')?.addEventListener('click',resetProgramAdminForm);
+$('programCancelBtn')?.addEventListener('click',resetProgramAdminForm);
+$('programRefreshBtn')?.addEventListener('click',loadProgramsAdmin);
+$('programsList')?.addEventListener('click',async e=>{
+  const edit=e.target.dataset.programEdit,toggle=e.target.dataset.programToggle,del=e.target.dataset.programDelete;
+  if(edit){
+    const p=programsAdminCache.find(x=>String(x.id)===String(edit));if(!p)return;
+    $('programId').value=p.id;$('programTitle').value=p.title||'';$('programLabel').value=p.label||'';$('programDescription').value=p.description||'';$('programIcon').value=p.icon||'✨';$('programHighlights').value=Array.isArray(p.highlights)?p.highlights.join('\n'):'';$('programImageUrl').value=p.image_url||'';$('programFeatured').checked=!!p.featured;$('programPublished').checked=!!p.published;$('programOrder').value=p.sort_order||0;$('programFormTitle').textContent='تعديل البرنامج';
+  }
+  if(toggle){const p=programsAdminCache.find(x=>String(x.id)===String(toggle));if(p){await client.from('programs').update({published:!p.published}).eq('id',p.id);await loadProgramsAdmin()}}
+  if(del&&confirm('هل تريد حذف هذا البرنامج نهائياً؟')){await client.from('programs').delete().eq('id',del);await loadProgramsAdmin()}
+});
+
+$('activityForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const msg=$('activityMsg');
+  msg.textContent='جارٍ الحفظ...';
+  try{
+    const id=$('activityId').value;
+    let image=$('activityImageUrl').value.trim()||null;
+    const file=$('activityImageFile').files[0];
+    if(file)image=await uploadImage(file,'activities');
+    const payload={title:$('activityTitle').value.trim(),description:$('activityDescription').value.trim(),category:$('activityCategory').value,activity_date:$('activityDate').value||null,image_url:image,sort_order:Number($('activityOrder').value)||0,published:$('activityPublished').checked};
+    const result=id?await client.from('activities').update(payload).eq('id',id):await client.from('activities').insert(payload);
+    if(result.error)throw result.error;
+    resetActivityAdminForm();
+    await loadActivitiesAdmin();
+    msg.textContent='تم حفظ النشاط.';
+  }catch(err){msg.textContent='تعذر الحفظ: '+(err.message||'خطأ')}
+});
+
+$('activityNewBtn')?.addEventListener('click',resetActivityAdminForm);
+$('activityCancelBtn')?.addEventListener('click',resetActivityAdminForm);
+$('activityRefreshBtn')?.addEventListener('click',loadActivitiesAdmin);
+$('activitiesList')?.addEventListener('click',async e=>{
+  const edit=e.target.dataset.activityEdit,toggle=e.target.dataset.activityToggle,del=e.target.dataset.activityDelete;
+  if(edit){
+    const a=activitiesAdminCache.find(x=>String(x.id)===String(edit));if(!a)return;
+    $('activityId').value=a.id;$('activityTitle').value=a.title||'';$('activityDescription').value=a.description||'';$('activityCategory').value=a.category||'community';$('activityDate').value=a.activity_date||'';$('activityImageUrl').value=a.image_url||'';$('activityOrder').value=a.sort_order||0;$('activityPublished').checked=!!a.published;$('activityFormTitle').textContent='تعديل النشاط';
+  }
+  if(toggle){const a=activitiesAdminCache.find(x=>String(x.id)===String(toggle));if(a){await client.from('activities').update({published:!a.published}).eq('id',a.id);await loadActivitiesAdmin()}}
+  if(del&&confirm('هل تريد حذف هذا النشاط نهائياً؟')){await client.from('activities').delete().eq('id',del);await loadActivitiesAdmin()}
+});
+
+async function initContentAdmin(){
+  const ok=await isAdmin();
+  if(!ok)return;
+  resetProgramAdminForm();
+  resetActivityAdminForm();
+  await Promise.all([loadProgramsAdmin(),loadActivitiesAdmin()]);
+}
+
+client.auth.onAuthStateChange(()=>initContentAdmin());
+initContentAdmin();
