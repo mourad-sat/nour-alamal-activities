@@ -3,6 +3,7 @@
   const adminView=document.getElementById('adminView');
   const loginForm=document.getElementById('loginForm');
   if(!tabs||!adminView||!loginForm)return;
+  if(document.querySelector('#tabs button[data-tab="managers"]'))return;
 
   // Allow invited users to claim their role after signing in.
   isAdmin=async function(){
