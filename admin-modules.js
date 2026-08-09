@@ -1,5 +1,5 @@
 (function(){
-  const VERSION='20260809-0200';
+  const VERSION='20260809-0210';
   const space=document.body.dataset.adminSpace||'association';
   const associationModules=[
     ['managers-v2','admin-managers-v2.js'],
@@ -16,10 +16,12 @@
     ['finance-linker','admin-finance-linker.js'],
     ['story-privacy','admin-story-privacy.js'],
     ['integrated-suite','admin-suite.js'],
-    ['export-upgrade','admin-export-upgrade.js']
+    ['export-upgrade','admin-export-upgrade.js'],
+    ['workspace-ui','admin-workspace-ui.js']
   ];
   const websiteModules=[
-    ['advanced','admin-advanced.js']
+    ['advanced','admin-advanced.js'],
+    ['workspace-ui','admin-workspace-ui.js']
   ];
   const modules=space==='website'?websiteModules:associationModules;
   const external=space==='association' ? [
@@ -28,9 +30,14 @@
   ] : [];
   window.ADMIN_BUILD_VERSION=VERSION;
   window.ADMIN_SPACE=space;
+  function loadStyle(){
+    const id='admin-space-theme';if(document.getElementById(id))return;
+    const l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href=`${space==='website'?'admin-website-ui.css':'admin-association-ui.css'}?v=${VERSION}`;document.head.appendChild(l)
+  }
   function load(name,src){return new Promise(resolve=>{if(document.querySelector(`script[data-admin-module="${name}"]`)){resolve();return}const s=document.createElement('script');s.src=`${src}?v=${VERSION}`;s.dataset.adminModule=name;s.onload=()=>resolve();s.onerror=()=>{console.error('تعذر تحميل وحدة الإدارة:',src);resolve()};document.body.appendChild(s)})}
   function loadExternal(name,src,test){return new Promise(resolve=>{if(test()){resolve();return}const existing=document.querySelector(`script[data-admin-external="${name}"]`);if(existing){existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>resolve(),{once:true});return}const s=document.createElement('script');s.src=src;s.dataset.adminExternal=name;s.crossOrigin='anonymous';s.referrerPolicy='no-referrer';s.onload=()=>resolve();s.onerror=()=>{console.warn('تعذر تحميل مكتبة التصدير:',name);resolve()};document.head.appendChild(s)})}
   async function bootModules(){
+    loadStyle();
     await Promise.all(external.map(([name,src,test])=>loadExternal(name,src,test)));
     for(const [name,src] of modules)await load(name,src);
     document.documentElement.dataset.adminBuild=VERSION;
