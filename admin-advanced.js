@@ -28,95 +28,39 @@
   document.head.appendChild(style);
 
   let messagesCache=[];
-
   function statusLabel(status){return ({new:'جديدة',read:'مقروءة',replied:'تم الرد',archived:'مؤرشفة'})[status]||status}
 
   async function loadMessages(){
-    const box=document.getElementById('messagesList');
-    if(!box)return;
-    box.innerHTML='<p>جارٍ التحميل...</p>';
+    const box=document.getElementById('messagesList');if(!box)return;box.innerHTML='<p>جارٍ التحميل...</p>';
     const {data,error}=await client.from('contact_messages').select('*').order('created_at',{ascending:false});
     if(error){box.innerHTML='<p>تعذر تحميل الرسائل.</p>';return}
     messagesCache=data||[];
-    const stats=document.getElementById('messagesStats');
-    if(stats){const counts=['new','read','replied','archived'].map(s=>[s,messagesCache.filter(x=>x.status===s).length]);stats.innerHTML=counts.map(([s,n])=>`<span>${statusLabel(s)}: ${n}</span>`).join('')}
+    const stats=document.getElementById('messagesStats');if(stats){const counts=['new','read','replied','archived'].map(s=>[s,messagesCache.filter(x=>x.status===s).length]);stats.innerHTML=counts.map(([s,n])=>`<span>${statusLabel(s)}: ${n}</span>`).join('')}
     box.innerHTML=messagesCache.length?messagesCache.map(m=>`<article class="message-item ${m.status==='new'?'new':''}"><div class="message-head"><div><h3>${escapeHtml(m.subject||'بدون موضوع')}</h3><div class="meta">${escapeHtml(m.name)} · ${escapeHtml(m.email)} · ${new Date(m.created_at).toLocaleString('ar-MA')}</div></div><span class="status ${m.status==='new'?'published':'draft'}">${statusLabel(m.status)}</span></div><div class="body">${escapeHtml(m.message)}</div><div class="message-actions"><a href="mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent('Re: '+(m.subject||''))}">الرد بالبريد</a><button data-msg-read="${m.id}" class="secondary">مقروءة</button><button data-msg-replied="${m.id}" class="secondary">تم الرد</button><button data-msg-archive="${m.id}" class="secondary">أرشفة</button><button data-msg-delete="${m.id}" class="danger">حذف</button></div></article>`).join(''):'<div class="empty">لا توجد رسائل حتى الآن.</div>';
   }
 
   document.getElementById('messagesRefresh')?.addEventListener('click',loadMessages);
   document.getElementById('messagesList')?.addEventListener('click',async e=>{
-    const id=e.target.dataset.msgRead||e.target.dataset.msgReplied||e.target.dataset.msgArchive||e.target.dataset.msgDelete;
-    if(!id)return;
+    const id=e.target.dataset.msgRead||e.target.dataset.msgReplied||e.target.dataset.msgArchive||e.target.dataset.msgDelete;if(!id)return;
     if(e.target.dataset.msgDelete){if(!confirm('هل تريد حذف هذه الرسالة نهائياً؟'))return;await client.from('contact_messages').delete().eq('id',id)}
     else{const status=e.target.dataset.msgRead?'read':e.target.dataset.msgReplied?'replied':'archived';await client.from('contact_messages').update({status}).eq('id',id)}
     await loadMessages();
   });
 
   function setPreview(map){
-    document.getElementById('heroBadge').value=map.hero_badge||'';
-    document.getElementById('heroTitle').value=map.hero_title||'';
-    document.getElementById('heroText').value=map.hero_text||'';
-    document.getElementById('brandingLogoUrl').value=map.logo_url||'';
-    document.getElementById('heroImageUrl').value=map.hero_image_url||'';
-    document.getElementById('brandPreviewBadge').textContent=map.hero_badge||'جمعية نور الأمل';
-    document.getElementById('brandPreviewTitle').textContent=map.hero_title||'';
-    document.getElementById('brandPreviewText').textContent=map.hero_text||'';
-    const logoBox=document.getElementById('brandPreviewLogo');
-    logoBox.innerHTML=map.logo_url?`<img src="${escapeHtml(map.logo_url)}" alt="الشعار">`:'ن';
-    const hero=document.getElementById('brandPreviewHero');
-    hero.src=map.hero_image_url||'';
+    document.getElementById('heroBadge').value=map.hero_badge||'';document.getElementById('heroTitle').value=map.hero_title||'';document.getElementById('heroText').value=map.hero_text||'';document.getElementById('brandingLogoUrl').value=map.logo_url||'';document.getElementById('heroImageUrl').value=map.hero_image_url||'';document.getElementById('brandPreviewBadge').textContent=map.hero_badge||'جمعية نور الأمل';document.getElementById('brandPreviewTitle').textContent=map.hero_title||'';document.getElementById('brandPreviewText').textContent=map.hero_text||'';
+    const logoBox=document.getElementById('brandPreviewLogo');logoBox.innerHTML=map.logo_url?`<img src="${escapeHtml(map.logo_url)}" alt="الشعار">`:'ن';document.getElementById('brandPreviewHero').src=map.hero_image_url||'';
   }
+  async function loadBranding(){const {data,error}=await client.from('site_settings').select('key,value').in('key',['logo_url','hero_image_url','hero_badge','hero_title','hero_text']);if(error)return;setPreview(Object.fromEntries((data||[]).map(x=>[x.key,x.value])))}
 
-  async function loadBranding(){
-    const {data,error}=await client.from('site_settings').select('key,value').in('key',['logo_url','hero_image_url','hero_badge','hero_title','hero_text']);
-    if(error)return;
-    setPreview(Object.fromEntries((data||[]).map(x=>[x.key,x.value])));
-  }
-
-  document.getElementById('brandingLogoFile')?.addEventListener('change',e=>{
-    const f=e.target.files[0];if(!f)return;
-    document.getElementById('brandingLogoUrl').value='';
-    const u=URL.createObjectURL(f);
-    document.getElementById('brandingLogoPreview').innerHTML=`<img src="${u}" alt="معاينة الشعار">`;
-    document.getElementById('brandingLogoPreview').classList.remove('hidden');
-  });
-  document.getElementById('heroImageFile')?.addEventListener('change',e=>{
-    const f=e.target.files[0];if(!f)return;
-    document.getElementById('heroImageUrl').value='';
-    const u=URL.createObjectURL(f);
-    document.getElementById('heroImagePreview').innerHTML=`<img src="${u}" alt="معاينة الواجهة">`;
-    document.getElementById('heroImagePreview').classList.remove('hidden');
-  });
+  document.getElementById('brandingLogoFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;document.getElementById('brandingLogoUrl').value='';const u=URL.createObjectURL(f);document.getElementById('brandingLogoPreview').innerHTML=`<img src="${u}" alt="معاينة الشعار">`;document.getElementById('brandingLogoPreview').classList.remove('hidden')});
+  document.getElementById('heroImageFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;document.getElementById('heroImageUrl').value='';const u=URL.createObjectURL(f);document.getElementById('heroImagePreview').innerHTML=`<img src="${u}" alt="معاينة الواجهة">`;document.getElementById('heroImagePreview').classList.remove('hidden')});
 
   document.getElementById('brandingForm')?.addEventListener('submit',async e=>{
-    e.preventDefault();
-    const msg=document.getElementById('brandingMsg');msg.textContent='جارٍ الحفظ...';
-    try{
-      let logo=document.getElementById('brandingLogoUrl').value.trim();
-      let hero=document.getElementById('heroImageUrl').value.trim();
-      const logoFile=document.getElementById('brandingLogoFile').files[0];
-      const heroFile=document.getElementById('heroImageFile').files[0];
-      if(logoFile)logo=await uploadImage(logoFile,'branding');
-      if(heroFile)hero=await uploadImage(heroFile,'branding');
-      const rows=[
-        {key:'logo_url',value:logo||''},
-        {key:'hero_image_url',value:hero||''},
-        {key:'hero_badge',value:document.getElementById('heroBadge').value.trim()},
-        {key:'hero_title',value:document.getElementById('heroTitle').value.trim()},
-        {key:'hero_text',value:document.getElementById('heroText').value.trim()}
-      ];
-      const {error}=await client.from('site_settings').upsert(rows,{onConflict:'key'});if(error)throw error;
-      msg.textContent='تم حفظ الهوية والواجهة بنجاح.';await loadBranding();
-    }catch(err){msg.textContent='تعذر الحفظ: '+(err.message||'خطأ')}
+    e.preventDefault();const msg=document.getElementById('brandingMsg');msg.textContent='جارٍ الحفظ...';
+    try{let logo=document.getElementById('brandingLogoUrl').value.trim(),hero=document.getElementById('heroImageUrl').value.trim();const logoFile=document.getElementById('brandingLogoFile').files[0],heroFile=document.getElementById('heroImageFile').files[0];if(logoFile)logo=await uploadImage(logoFile,'branding');if(heroFile)hero=await uploadImage(heroFile,'branding');const rows=[{key:'logo_url',value:logo||''},{key:'hero_image_url',value:hero||''},{key:'hero_badge',value:document.getElementById('heroBadge').value.trim()},{key:'hero_title',value:document.getElementById('heroTitle').value.trim()},{key:'hero_text',value:document.getElementById('heroText').value.trim()}];const {error}=await client.from('site_settings').upsert(rows,{onConflict:'key'});if(error)throw error;msg.textContent='تم حفظ الهوية والواجهة بنجاح.';await loadBranding()}catch(err){msg.textContent='تعذر الحفظ: '+(err.message||'خطأ')}
   });
 
   async function initAdvanced(){const ok=await isAdmin();if(!ok)return;await Promise.all([loadMessages(),loadBranding()])}
-  client.auth.onAuthStateChange(()=>initAdvanced());
-  initAdvanced();
+  client.auth.onAuthStateChange(()=>initAdvanced());initAdvanced();
 })();
-
-if(!document.querySelector('script[src="admin-registration.js"]')){
-  const registrationScript=document.createElement('script');
-  registrationScript.src='admin-registration.js';
-  document.body.appendChild(registrationScript);
-}
