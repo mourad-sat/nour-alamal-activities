@@ -3,6 +3,7 @@
   if(!space)return;
   const roleLabels={super_admin:'مدير عام',treasurer:'أمين المال',reports_manager:'مسؤول التقارير',content_manager:'مسؤول المحتوى'};
   const websiteRoles=new Set(['super_admin','content_manager']);
+  const reportsRoles=new Set(['super_admin','reports_manager']);
   let profile=null;
 
   function addStyles(){if(document.getElementById('adminSpaceStyles'))return;const s=document.createElement('style');s.id='adminSpaceStyles';s.textContent=`
@@ -10,6 +11,14 @@
     .web-dash-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:15px 0}.web-dash-card{border:1px solid #dce8e6;border-radius:16px;background:#fff;padding:15px}.web-dash-card span{font-size:10px;color:#718682;display:block}.web-dash-card b{font-size:23px;color:#0f766e;display:block;margin-top:5px}.web-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.web-quick button{text-align:right;min-height:92px;padding:14px}.web-quick button strong{display:block;margin-bottom:4px}.web-quick button small{font-weight:400;opacity:.82}.workspace-denied{max-width:720px;margin:35px auto;text-align:center}
     @media(max-width:900px){.web-dash-grid{grid-template-columns:repeat(2,1fr)}.web-quick{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.web-dash-grid,.web-quick{grid-template-columns:1fr}}
   `;document.head.appendChild(s)}
+
+  function applyEarlyRoleVisibility(){
+    if(!profile||space!=='association')return;
+    const reportTab=document.querySelector('#tabs [data-tab="reports"]'),reportPanel=document.querySelector('[data-panel="reports"]');
+    const canReports=reportsRoles.has(profile.role);
+    if(reportTab)reportTab.style.display=canReports?'':'none';
+    if(reportPanel&&!canReports)reportPanel.classList.add('hidden');
+  }
 
   function updateChrome(){
     document.title=(space==='association'?'تدبير الجمعية':'تدبير الموقع')+' | جمعية نور الأمل';
@@ -22,28 +31,28 @@
     if(space!=='website'||document.getElementById('websiteDashboardPanel'))return;
     const tabs=document.getElementById('tabs'),adminView=document.getElementById('adminView');if(!tabs||!adminView)return;
     const tab=document.createElement('button');tab.dataset.tab='website-dashboard';tab.textContent='الرئيسية';tabs.prepend(tab);
-    const panel=document.createElement('section');panel.id='websiteDashboardPanel';panel.className='tab-panel hidden';panel.dataset.panel='website-dashboard';panel.innerHTML=`<div class="content-stack"><section class="panel"><div class="list-head"><div><span class="badge">الموقع الإلكتروني</span><h2>لوحة تدبير الموقع</h2><p>ملخص سريع للمحتوى والرسائل والعناصر المنشورة.</p></div><button id="webDashRefresh" type="button" class="secondary">تحديث</button></div><div id="webDashStats" class="web-dash-grid"><div class="web-dash-card"><span>المنشورات</span><b>—</b></div></div></section><section class="panel"><h2>إجراءات سريعة</h2><div class="web-quick"><button type="button" data-web-go="posts"><strong>منشور جديد</strong><small>كتابة خبر أو إعلان للموقع</small></button><button type="button" data-web-go="content"><strong>البرامج والأنشطة</strong><small>تحديث ما يظهر للزوار</small></button><button type="button" data-web-go="gallery"><strong>معرض الصور</strong><small>إضافة أو ترتيب الصور</small></button><button type="button" data-web-go="branding"><strong>الهوية والواجهة</strong><small>الشعار وصورة الواجهة الرئيسية</small></button></div></section><section class="panel"><div class="list-head"><div><h2>آخر الرسائل</h2><p>الرسائل الجديدة الواردة من نموذج التواصل.</p></div><button type="button" class="secondary" data-web-go="messages">فتح الرسائل</button></div><div id="webDashMessages"><p>جارٍ التحميل...</p></div></section></div>`;adminView.prepend(panel);
+    const panel=document.createElement('section');panel.id='websiteDashboardPanel';panel.className='tab-panel hidden';panel.dataset.panel='website-dashboard';panel.innerHTML=`<div class="content-stack"><section class="panel"><div class="list-head"><div><span class="badge">الموقع الإلكتروني</span><h2>لوحة تدبير الموقع</h2><p>ملخص سريع للمحتوى والرسائل والعناصر المنشورة.</p></div><button id="webDashRefresh" type="button" class="secondary">تحديث</button></div><div id="webDashStats" class="web-dash-grid"><div class="web-dash-card"><span>المنشورات</span><b>—</b></div></div></section><section class="panel"><h2>إجراءات سريعة</h2><div class="web-quick"><button type="button" data-web-go="posts"><strong>منشور جديد</strong><small>كتابة خبر أو إعلان للموقع</small></button><button type="button" data-web-go="content"><strong>البرامج والأنشطة</strong><small>تحديث ما يظهر للزوار</small></button><button type="button" data-web-go="gallery"><strong>معرض الصور</strong><small>إضافة أو ترتيب الصور</small></button><button type="button" data-web-go="branding"><strong>الهوية والواجهة</strong><small>الشعار وصورة الواجهة الرئيسية</small></button></div></section><section class="panel"><div class="list-head"><div><h2>آخر الرسائل</h2><p>أحدث الرسائل الواردة من نموذج التواصل.</p></div><button type="button" class="secondary" data-web-go="messages">فتح الرسائل</button></div><div id="webDashMessages"><p>جارٍ التحميل...</p></div></section></div>`;adminView.prepend(panel);
     panel.addEventListener('click',e=>{const b=e.target.closest('[data-web-go]');if(!b)return;document.querySelector(`#tabs [data-tab="${b.dataset.webGo}"]`)?.click()});
     document.getElementById('webDashRefresh')?.addEventListener('click',loadWebsiteDashboard);
   }
 
   async function loadWebsiteDashboard(){
     if(space!=='website')return;const stats=document.getElementById('webDashStats'),messages=document.getElementById('webDashMessages');if(!stats)return;
-    const [p,pr,a,g,m]=await Promise.all([
-      client.from('posts').select('id,published',{count:'exact'}),client.from('programs').select('id,published',{count:'exact'}),client.from('activities').select('id,published',{count:'exact'}),client.from('gallery_items').select('id,published',{count:'exact'}),client.from('contact_messages').select('id,name,subject,status,created_at').order('created_at',{ascending:false}).limit(5)
+    const [p,pr,a,g,newM,recentM]=await Promise.all([
+      client.from('posts').select('id',{count:'exact',head:true}),client.from('programs').select('id',{count:'exact',head:true}),client.from('activities').select('id',{count:'exact',head:true}),client.from('gallery_items').select('id',{count:'exact',head:true}),client.from('contact_messages').select('id',{count:'exact',head:true}).eq('status','new'),client.from('contact_messages').select('id,name,subject,status,created_at').order('created_at',{ascending:false}).limit(5)
     ]);
-    const rows=[['المنشورات',p.count||0],['البرامج',pr.count||0],['الأنشطة',a.count||0],['صور المعرض',g.count||0],['الرسائل الجديدة',(m.data||[]).filter(x=>x.status==='new').length]];
+    const rows=[['المنشورات',p.count||0],['البرامج',pr.count||0],['الأنشطة',a.count||0],['صور المعرض',g.count||0],['الرسائل الجديدة',newM.count||0]];
     stats.innerHTML=rows.map(([l,n])=>`<div class="web-dash-card"><span>${l}</span><b>${n}</b></div>`).join('');
-    if(messages)messages.innerHTML=(m.data||[]).length?(m.data||[]).map(x=>`<article class="post-item"><div class="post-top"><div><h3>${escapeHtml(x.subject||'بدون موضوع')}</h3><small>${escapeHtml(x.name||'')} · ${new Date(x.created_at).toLocaleString('ar-MA')}</small></div><span class="status ${x.status==='new'?'published':'draft'}">${x.status==='new'?'جديدة':'مقروءة'}</span></div></article>`).join(''):'<div class="empty">لا توجد رسائل حديثة.</div>';
+    if(messages)messages.innerHTML=(recentM.data||[]).length?(recentM.data||[]).map(x=>`<article class="post-item"><div class="post-top"><div><h3>${escapeHtml(x.subject||'بدون موضوع')}</h3><small>${escapeHtml(x.name||'')} · ${new Date(x.created_at).toLocaleString('ar-MA')}</small></div><span class="status ${x.status==='new'?'published':'draft'}">${x.status==='new'?'جديدة':'مقروءة'}</span></div></article>`).join(''):'<div class="empty">لا توجد رسائل حديثة.</div>';
   }
 
-  function selectDefault(){setTimeout(()=>{const name=space==='website'?'website-dashboard':'dashboard';const b=document.querySelector(`#tabs [data-tab="${name}"]`);if(b)b.click();else document.querySelector('#tabs button[data-tab]')?.click()},80)}
+  function selectDefault(){setTimeout(()=>{const name=space==='website'?'website-dashboard':'dashboard';const b=document.querySelector(`#tabs [data-tab="${name}"]`);if(b)b.click();else [...document.querySelectorAll('#tabs button[data-tab]')].find(x=>getComputedStyle(x).display!=='none')?.click()},80)}
 
   async function init(){
     addStyles();profile=await window.getCurrentAdminProfile?.();if(!profile)return;
     if(space==='website'&&!websiteRoles.has(profile.role)){location.replace('admin.html?denied=website');return}
-    updateChrome();if(space==='website'){buildWebsiteDashboard();await loadWebsiteDashboard()}selectDefault();
+    applyEarlyRoleVisibility();updateChrome();if(space==='website'){buildWebsiteDashboard();await loadWebsiteDashboard()}selectDefault();
   }
-  window.addEventListener('admin-auth-ready',init);window.addEventListener('admin-modules-ready',()=>{updateChrome();selectDefault();if(space==='website')loadWebsiteDashboard()});
+  window.addEventListener('admin-auth-ready',init);window.addEventListener('admin-modules-ready',()=>{applyEarlyRoleVisibility();updateChrome();selectDefault();if(space==='website')loadWebsiteDashboard()});
   init();
 })();
