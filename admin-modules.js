@@ -26,7 +26,10 @@
     [['workspace-ui','admin-workspace-ui.js']]
   ];
   const websiteStages=[
-    [['advanced','admin-advanced.js']],
+    [
+      ['advanced','admin-advanced.js'],
+      ['registration','admin-registration.js']
+    ],
     [['public-site-content','admin-public-site-content.js']],
     [['workspace-ui','admin-workspace-ui.js']]
   ];
