@@ -51,20 +51,18 @@
   function installMobileToggle(){
     if(document.getElementById('workspaceMenuToggle'))return;
     const head=document.querySelector('.admin-head');if(!head)return;
-    const b=document.createElement('button');b.id='workspaceMenuToggle';b.type='button';b.className='secondary workspace-menu-toggle';b.innerHTML='<span>☰</span><span>القائمة</span>';
+    const b=document.createElement('button');b.id='workspaceMenuToggle';b.type='button';b.className='secondary workspace-menu-toggle';b.innerHTML='<span>☰</span><span>القائمة</span>';b.setAttribute('aria-expanded','false');
     b.addEventListener('click',()=>{mobileOpen=!mobileOpen;document.body.classList.toggle('workspace-nav-open',mobileOpen);b.setAttribute('aria-expanded',String(mobileOpen))});head.appendChild(b);
     document.addEventListener('click',e=>{if(window.innerWidth>880||!mobileOpen)return;if(e.target.closest('#tabs')||e.target.closest('#workspaceMenuToggle'))return;mobileOpen=false;document.body.classList.remove('workspace-nav-open');b.setAttribute('aria-expanded','false')});
   }
 
   function installContextBar(){
     if(document.getElementById('workspaceContextBar'))return;
-    const bar=document.createElement('div');bar.id='workspaceContextBar';bar.className='workspace-context-bar';bar.innerHTML=`<div><span>${config.icon} ${esc(config.title)}</span><strong id="workspaceContextTitle">${esc(config.title)}</strong></div><div class="workspace-context-actions"><a href="admin.html">بوابة الإدارة</a>${space==='website'?'<a href="index.html" target="_blank">عرض الموقع ↗</a>':'<a href="association-admin.html">المساحة الداخلية</a>'}</div>`;
+    const bar=document.createElement('div');bar.id='workspaceContextBar';bar.className='workspace-context-bar';bar.innerHTML=`<div><span>${config.icon} ${esc(config.title)}</span><strong id="workspaceContextTitle">${esc(config.title)}</strong></div><div class="workspace-context-actions"><a href="admin.html">بوابة الإدارة</a>${space==='website'?'<a href="index.html" target="_blank">عرض الموقع ↗</a>':'<a href="admin.html">العودة إلى البوابة</a>'}</div>`;
     const head=document.querySelector('.admin-head');head?.insertAdjacentElement('afterend',bar);
   }
 
-  function updateContext(name){
-    const t=document.getElementById('workspaceContextTitle');if(t)t.textContent=config.labels[name]||name||config.title;
-  }
+  function updateContext(name){const t=document.getElementById('workspaceContextTitle');if(t)t.textContent=config.labels[name]||name||config.title}
 
   function refresh(){
     clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{
@@ -74,7 +72,14 @@
   }
 
   tabs.addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(!b)return;updateContext(b.dataset.tab);if(window.innerWidth<=880){mobileOpen=false;document.body.classList.remove('workspace-nav-open');document.getElementById('workspaceMenuToggle')?.setAttribute('aria-expanded','false')}});
-  new MutationObserver(refresh).observe(tabs,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']});
+  const observer=new MutationObserver(mutations=>{
+    const relevant=mutations.some(m=>{
+      if(m.type==='attributes')return m.target?.matches?.('button[data-tab]')&&(m.attributeName==='style');
+      return [...m.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('button[data-tab]')||n.querySelector?.('button[data-tab]')))
+    });
+    if(relevant)refresh();
+  });
+  observer.observe(tabs,{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
   window.addEventListener('admin-modules-ready',refresh);window.addEventListener('admin-auth-ready',refresh);window.addEventListener('resize',()=>{if(window.innerWidth>880){mobileOpen=false;document.body.classList.remove('workspace-nav-open')}});
   refresh();
 })();
