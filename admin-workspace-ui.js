@@ -22,7 +22,7 @@
   }[space];
   if(!config)return;
 
-  let mobileOpen=false,refreshTimer=null;
+  let mobileOpen=false,refreshTimer=null,observer=null,refreshing=false;
   function esc(v=''){return String(v).replace(/[&<>\'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
   function installSidebarBrand(){
@@ -38,14 +38,14 @@
   }
 
   function reorderButtons(){
-    const buttons=[...tabs.querySelectorAll(':scope > button[data-tab]')];
-    buttons.sort((a,b)=>{const ai=config.order.indexOf(a.dataset.tab),bi=config.order.indexOf(b.dataset.tab);return (ai<0?999:ai)-(bi<0?999:bi)}).forEach(b=>tabs.appendChild(b));
+    const current=[...tabs.querySelectorAll(':scope > button[data-tab]')];
+    const sorted=[...current].sort((a,b)=>{const ai=config.order.indexOf(a.dataset.tab),bi=config.order.indexOf(b.dataset.tab);return (ai<0?999:ai)-(bi<0?999:bi)});
+    if(sorted.some((b,i)=>b!==current[i]))sorted.forEach(b=>tabs.appendChild(b));
   }
 
   function installGroups(){
     tabs.querySelectorAll('.workspace-nav-group').forEach(x=>x.remove());
-    const map=new Map(config.groups);
-    for(const [tab,label] of map){const b=tabs.querySelector(`:scope > button[data-tab="${tab}"]`);if(!b||b.style.display==='none')continue;const g=document.createElement('div');g.className='workspace-nav-group';g.textContent=label;b.insertAdjacentElement('beforebegin',g)}
+    for(const [tab,label] of config.groups){const b=tabs.querySelector(`:scope > button[data-tab="${tab}"]`);if(!b||b.style.display==='none')continue;const g=document.createElement('div');g.className='workspace-nav-group';g.textContent=label;b.insertAdjacentElement('beforebegin',g)}
   }
 
   function installMobileToggle(){
@@ -63,23 +63,29 @@
   }
 
   function updateContext(name){const t=document.getElementById('workspaceContextTitle');if(t)t.textContent=config.labels[name]||name||config.title}
+  function observe(){observer?.observe(tabs,{childList:true,subtree:true,attributes:true,attributeFilter:['style']})}
 
   function refresh(){
     clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{
-      installSidebarBrand();tabs.querySelectorAll(':scope > button[data-tab]').forEach(decorateButton);reorderButtons();installGroups();installMobileToggle();installContextBar();
-      const active=tabs.querySelector(':scope > button[data-tab].active');if(active)updateContext(active.dataset.tab);
+      if(refreshing)return;
+      refreshing=true;observer?.disconnect();
+      try{
+        installSidebarBrand();tabs.querySelectorAll(':scope > button[data-tab]').forEach(decorateButton);reorderButtons();installGroups();installMobileToggle();installContextBar();
+        const active=tabs.querySelector(':scope > button[data-tab].active');if(active)updateContext(active.dataset.tab);
+      }finally{refreshing=false;observe()}
     },40);
   }
 
   tabs.addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(!b)return;updateContext(b.dataset.tab);if(window.innerWidth<=880){mobileOpen=false;document.body.classList.remove('workspace-nav-open');document.getElementById('workspaceMenuToggle')?.setAttribute('aria-expanded','false')}});
-  const observer=new MutationObserver(mutations=>{
+  observer=new MutationObserver(mutations=>{
+    if(refreshing)return;
     const relevant=mutations.some(m=>{
-      if(m.type==='attributes')return m.target?.matches?.('button[data-tab]')&&(m.attributeName==='style');
+      if(m.type==='attributes')return m.target?.matches?.('button[data-tab]')&&m.attributeName==='style';
       return [...m.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('button[data-tab]')||n.querySelector?.('button[data-tab]')))
     });
     if(relevant)refresh();
   });
-  observer.observe(tabs,{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
+  observe();
   window.addEventListener('admin-modules-ready',refresh);window.addEventListener('admin-auth-ready',refresh);window.addEventListener('resize',()=>{if(window.innerWidth>880){mobileOpen=false;document.body.classList.remove('workspace-nav-open')}});
   refresh();
 })();
