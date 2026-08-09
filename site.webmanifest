@@ -1,0 +1,12 @@
+{
+  "name": "جمعية نور الأمل",
+  "short_name": "نور الأمل",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbfdfc",
+  "theme_color": "#075e54",
+  "description": "الموقع الرسمي لجمعية نور الأمل وبرامجها وأنشطتها."
+}
