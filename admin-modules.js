@@ -1,5 +1,5 @@
 (function(){
-  const VERSION='20260809-0220';
+  const VERSION='20260809-0300';
   const space=document.body.dataset.adminSpace||'association';
   const associationStages=[
     [
@@ -23,12 +23,11 @@
       ['integrated-suite','admin-suite.js'],
       ['export-upgrade','admin-export-upgrade.js']
     ],
-    [
-      ['workspace-ui','admin-workspace-ui.js']
-    ]
+    [['workspace-ui','admin-workspace-ui.js']]
   ];
   const websiteStages=[
     [['advanced','admin-advanced.js']],
+    [['public-site-content','admin-public-site-content.js']],
     [['workspace-ui','admin-workspace-ui.js']]
   ];
   const stages=space==='website'?websiteStages:associationStages;
