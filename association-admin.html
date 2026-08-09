@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تدبير الجمعية | جمعية نور الأمل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css?v=20260809-0200">
+</head>
+<body data-admin-space="association">
+<header class="topbar"><div class="wrap"><a href="admin.html">← بوابة الإدارة</a><strong>تدبير جمعية نور الأمل</strong><button id="logoutBtn" class="secondary hidden">تسجيل الخروج</button></div></header>
+<main class="wrap main">
+<section id="loginView" class="panel login-panel"><span class="badge">دخول الإدارة</span><h1>تدبير الجمعية</h1><p>أدخل حسابك الإداري. إذا كنت مسجلاً من قبل فلن تحتاج إلى تسجيل الدخول مرة أخرى.</p><form id="loginForm"><label>البريد الإلكتروني<input id="email" type="email" required autocomplete="email"></label><label>كلمة المرور<input id="password" type="password" required autocomplete="current-password"></label><button type="submit">دخول</button><button type="button" id="resetPasswordBtn" class="secondary full">نسيت كلمة المرور</button><p id="loginMsg" class="msg"></p></form></section>
+<section id="adminView" class="hidden">
+  <div class="admin-head"><div><span class="badge">الإدارة الداخلية</span><h1>تدبير الجمعية</h1><p>التخطيط والتوثيق والتقارير والمهام والمالية والحكامة.</p></div><a class="button-link" href="admin.html">بوابة الإدارة</a></div>
+  <nav class="tabs" id="tabs"><button class="active" data-tab="reports">التقارير والإحصائيات</button></nav>
+  <section class="tab-panel" data-panel="reports">
+    <div class="reports-shell">
+      <section class="panel report-dashboard">
+        <div class="report-dashboard-head"><div><span class="badge">التقرير الأدبي</span><h2>لوحة المؤشرات الشهرية</h2><p>تلخيص تلقائي لجميع أنشطة الجمعية الموثقة خلال الشهر المحدد.</p></div><div class="report-period"><label>الشهر<input id="reportMonth" type="month"></label><button id="reportRefresh" type="button" class="secondary">تحديث المؤشرات</button></div></div>
+        <div id="reportStats" class="report-stats"><div class="report-stat"><b>0</b><span>الأنشطة</span></div><div class="report-stat"><b>0</b><span>مجموع المشاركات</span></div><div class="report-stat"><b>0</b><span>الإناث</span></div><div class="report-stat"><b>0</b><span>الذكور</span></div><div class="report-stat"><b>0</b><span>ساعات الأنشطة</span></div></div>
+        <div class="report-summary-box"><div class="list-head"><h3>مسودة ملخص الشهر</h3><button id="copyMonthlySummary" type="button" class="secondary">نسخ الملخص</button></div><p id="monthlySummary">لم تتم إضافة أنشطة موثقة لهذا الشهر بعد.</p></div>
+      </section>
+      <div class="admin-grid report-grid">
+        <section class="panel editor">
+          <div class="section-title"><div><span class="badge">توثيق داخلي</span><h2 id="reportFormTitle">توثيق نشاط جديد</h2></div><button id="reportNewBtn" type="button" class="secondary">+ نشاط جديد</button></div>
+          <form id="reportActivityForm"><input id="reportActivityId" type="hidden">
+            <label>عنوان النشاط<input id="reportTitle" required maxlength="200" placeholder="مثال: لقاء تحسيسي، حملة بيئية، ورشة تكوين..."></label>
+            <div class="two"><label>نوع النشاط<input id="reportCategory" list="reportCategoryOptions" required placeholder="اكتب أو اختر نوع النشاط"><datalist id="reportCategoryOptions"><option value="تربوي"><option value="تكويني"><option value="ثقافي"><option value="اجتماعي"><option value="رياضي"><option value="بيئي"><option value="رقمي"><option value="حرفي"><option value="تحسيسي"><option value="حملة"><option value="لقاء أو ندوة"><option value="زيارة ميدانية"><option value="معرض"><option value="مسابقة"><option value="رحلة"><option value="شراكة"><option value="نشاط آخر"></datalist></label><label>البرنامج المرتبط (اختياري)<select id="reportProgram"><option value="">نشاط عام للجمعية</option></select></label></div>
+            <label>اسم مشروع/مبادرة أخرى (اختياري)<input id="reportProjectName" maxlength="180" placeholder="اتركه فارغاً إذا كان النشاط عاماً"></label>
+            <div class="two"><label>تاريخ البداية<input id="reportStartDate" type="date" required></label><label>تاريخ النهاية<input id="reportEndDate" type="date"></label></div>
+            <div class="two"><label>المكان<input id="reportLocation" maxlength="200"></label><label>الجهة المنظمة<input id="reportOrganizer" value="جمعية نور الأمل" maxlength="200"></label></div>
+            <label>الشركاء<textarea id="reportPartners" rows="2" placeholder="يمكن كتابة أكثر من شريك"></textarea></label>
+            <label>الفئة المستهدفة<input id="reportTargetGroup" maxlength="240" placeholder="أطفال، شباب، نساء، أسر، حرفيون..."></label>
+            <label>وصف النشاط<textarea id="reportDescription" rows="4"></textarea></label>
+            <label>الأهداف<textarea id="reportObjectives" rows="3"></textarea></label>
+            <label>النتائج المحققة<textarea id="reportResults" rows="3"></textarea></label>
+            <h3 class="form-subtitle">المستفيدون والمؤشرات</h3>
+            <div class="four"><label>الإجمالي<input id="reportBeneficiariesTotal" type="number" min="0" value="0"></label><label>الإناث<input id="reportBeneficiariesFemale" type="number" min="0" value="0"></label><label>الذكور<input id="reportBeneficiariesMale" type="number" min="0" value="0"></label><label>غير محدد<input id="reportBeneficiariesOther" type="number" min="0" value="0"></label></div>
+            <div class="three"><label>الفئات العمرية<input id="reportAgeGroups" maxlength="180" placeholder="مثال: 15–24 سنة"></label><label>عدد المؤطرين<input id="reportFacilitators" type="number" min="0" value="0"></label><label>عدد الساعات<input id="reportHours" type="number" min="0" step="0.5" value="0"></label></div>
+            <h3 class="form-subtitle">الصور والتوثيق</h3>
+            <label>صور النشاط<input id="reportImages" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><small>يمكن اختيار عدة صور دفعة واحدة. الحد الأقصى 5MB لكل صورة.</small></label>
+            <div id="reportImagePreview" class="multi-image-preview"></div><div id="reportExistingImages" class="multi-image-preview"></div>
+            <label>الصعوبات أو الملاحظات أثناء التنفيذ<textarea id="reportChallenges" rows="3"></textarea></label><label>التوصيات والمتابعة<textarea id="reportRecommendations" rows="3"></textarea></label><label>ملاحظات إضافية<textarea id="reportNotes" rows="3"></textarea></label>
+            <div class="actions"><button type="submit">حفظ النشاط الموثق</button><button id="reportCancelBtn" type="button" class="secondary">إلغاء التعديل</button></div><p id="reportMsg" class="msg"></p>
+          </form>
+        </section>
+        <section class="panel list-panel"><div class="list-head"><div><h2>الأنشطة الموثقة</h2><p>هذه القائمة داخلية ومخصصة للتقارير.</p></div><button id="reportListRefresh" type="button" class="secondary">تحديث</button></div><div class="two report-filters"><label>تصفية حسب الشهر<input id="reportListMonth" type="month"></label><label>بحث<input id="reportSearch" type="search" placeholder="عنوان، نوع، مكان..."></label></div><div id="reportActivitiesList" class="posts-list"><p>جارٍ التحميل...</p></div></section>
+      </div>
+    </div>
+  </section>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="admin-core.js?v=20260809-0200"></script>
+<script src="admin-reports.js?v=20260809-0200"></script>
+<script src="admin-modules.js?v=20260809-0200"></script>
+<script src="admin-space.js?v=20260809-0200"></script>
+</body></html>
