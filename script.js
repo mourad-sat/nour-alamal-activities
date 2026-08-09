@@ -1,168 +1,155 @@
-const menu=document.getElementById('menu');
-const nav=document.getElementById('navlinks');
-menu?.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open))});
-nav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>nav.classList.remove('open')));
-const yearEl=document.getElementById('year');if(yearEl)yearEl.textContent=new Date().getFullYear();
-
 const SUPABASE_URL='https://eabplnfgisdnlylwqrkb.supabase.co';
 const SUPABASE_KEY='sb_publishable_Z7p9pwNVhzehV_ebSTMGCA_S0szQ4yF';
 const headers={apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
-const labels={education:'تربية',training:'تكوين',digital:'رقمنة',community:'مجتمعي'};
-const esc=v=>String(v??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
-let activities=[];
+const categoryLabels={education:'تربية',training:'تكوين',digital:'رقمنة',community:'مجتمعي'};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
+let activities=[],posts=[],programs=[],activityFilter='all',activityLimit=6;
 
-function activityDate(a){return a.activity_date?new Date(a.activity_date+'T12:00:00').toLocaleDateString('ar-MA'):'نشاط مستمر'}
-function renderActivities(filter='all'){
-  const grid=document.getElementById('activityGrid');if(!grid)return;
-  const list=filter==='all'?activities:activities.filter(x=>x.category===filter);
-  if(!list.length){grid.innerHTML='<div class="loading">لا توجد أنشطة في هذا التصنيف حالياً.</div>';return}
-  grid.innerHTML=list.map(x=>`<article class="activity-card">${x.image_url?`<img src="${esc(x.image_url)}" alt="${esc(x.title)}" loading="lazy">`:''}<div class="activity-body"><div class="activity-meta"><span class="activity-type">${labels[x.category]||'نشاط'}</span><span>${activityDate(x)}</span></div><h3>${esc(x.title)}</h3><p>${esc(x.description)}</p></div></article>`).join('');
+async function api(path,{timeout=9000,...options}={}){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeout);
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{headers:{...headers,...(options.headers||{})},...options,signal:controller.signal});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    if(res.status===204)return null;
+    const text=await res.text();return text?JSON.parse(text):null;
+  }finally{clearTimeout(timer)}
+}
+
+function setStat(name,value){const el=document.querySelector(`[data-stat="${name}"]`);if(el)el.textContent=Number(value)||0}
+function localDate(value){if(!value)return 'نشاط مستمر';try{return new Date(`${value}T12:00:00`).toLocaleDateString('ar-MA',{year:'numeric',month:'short',day:'numeric'})}catch{return value}}
+function publishedDate(value){if(!value)return '';try{return new Date(value).toLocaleDateString('ar-MA',{year:'numeric',month:'long',day:'numeric'})}catch{return ''}}
+function empty(message){return `<div class="empty-state">${esc(message)}</div>`}
+
+function setupNavigation(){
+  const menu=$('menu'),nav=$('navlinks');if(!menu||!nav)return;
+  const close=()=>{nav.classList.remove('open');document.body.classList.remove('menu-open');menu.setAttribute('aria-expanded','false')};
+  menu.addEventListener('click',()=>{const open=!nav.classList.contains('open');nav.classList.toggle('open',open);document.body.classList.toggle('menu-open',open);menu.setAttribute('aria-expanded',String(open))});
+  nav.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',close));
+  document.addEventListener('click',e=>{if(window.innerWidth>850||!nav.classList.contains('open'))return;if(e.target.closest('#navlinks')||e.target.closest('#menu'))return;close()});
+  window.addEventListener('resize',()=>{if(window.innerWidth>850)close()},{passive:true});
+  const links=[...nav.querySelectorAll('a[href^="#"]')];
+  const sections=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if('IntersectionObserver'in window){
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')===`#${entry.target.id}`))}),{rootMargin:'-35% 0px -55%',threshold:0});
+    sections.forEach(s=>observer.observe(s));
+  }
+}
+
+function setupChrome(){
+  const header=document.querySelector('.site-header'),top=$('backToTop');
+  const onScroll=()=>{const y=window.scrollY;header?.classList.toggle('scrolled',y>15);top?.classList.toggle('show',y>550)};
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  top?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  const year=$('year');if(year)year.textContent=new Date().getFullYear();
+}
+
+function setupReveal(){
+  const nodes=document.querySelectorAll('.reveal');
+  if(!('IntersectionObserver'in window)||matchMedia('(prefers-reduced-motion: reduce)').matches){nodes.forEach(n=>n.classList.add('visible'));return}
+  const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}}),{threshold:.12});
+  nodes.forEach(n=>observer.observe(n));
+}
+
+function renderPrograms(){
+  const box=$('programGrid');if(!box)return;
+  if(!programs.length){box.innerHTML=empty('لا توجد برامج منشورة حالياً.');setStat('programs',0);setStat('tracks',0);return}
+  setStat('programs',programs.length);
+  const tracks=programs.reduce((sum,p)=>sum+(Array.isArray(p.highlights)?p.highlights.length:0),0);setStat('tracks',tracks);
+  box.innerHTML=programs.map(p=>`<article class="program-card ${p.featured?'featured':''}">${p.image_url?`<div class="program-card-image"><img src="${esc(p.image_url)}" alt="" loading="lazy"></div>`:''}<div class="program-card-content"><span class="program-icon" aria-hidden="true">${esc(p.icon||'✨')}</span><span class="program-label">${esc(p.label||'برنامج')}</span><h3>${esc(p.title)}</h3><p>${esc(p.description||'')}</p>${Array.isArray(p.highlights)&&p.highlights.length?`<ul class="program-highlights">${p.highlights.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>`:''}</div></article>`).join('');
+}
+
+async function loadPrograms(){
+  try{programs=await api('programs?select=id,title,label,description,icon,highlights,image_url,featured,sort_order&published=eq.true&order=sort_order.asc,created_at.asc')||[]}catch(err){console.error('programs',err);programs=[]}renderPrograms();
+}
+
+function filteredActivities(){return activityFilter==='all'?activities:activities.filter(a=>a.category===activityFilter)}
+function renderActivities(){
+  const box=$('activityGrid'),more=$('activityMore');if(!box)return;
+  const all=filteredActivities(),shown=all.slice(0,activityLimit);setStat('activities',activities.length);
+  if(!shown.length){box.innerHTML=empty('لا توجد أنشطة منشورة في هذا التصنيف حالياً.');more?.classList.add('hidden');return}
+  box.innerHTML=shown.map(a=>`<article class="activity-card"><div class="activity-media ${a.image_url?'':'no-image'}">${a.image_url?`<img src="${esc(a.image_url)}" alt="${esc(a.title)}" loading="lazy">`:'<span aria-hidden="true">✦</span>'}</div><div class="activity-body"><div class="activity-meta"><span class="activity-type">${esc(categoryLabels[a.category]||'نشاط')}</span><span>${esc(localDate(a.activity_date))}</span></div><h3>${esc(a.title)}</h3><p>${esc(a.description||'')}</p></div></article>`).join('');
+  more?.classList.toggle('hidden',shown.length>=all.length);if(more)more.textContent=`عرض المزيد (${all.length-shown.length})`;
 }
 
 async function loadActivities(){
-  const grid=document.getElementById('activityGrid');if(!grid)return;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/activities?select=id,title,description,category,activity_date,image_url,sort_order&published=eq.true&order=sort_order.asc,created_at.desc`,{headers});
-    if(!res.ok)throw new Error('activities');
-    activities=await res.json();
-    renderActivities();
-    const note=document.querySelector('#activities .head p');if(note)note.textContent='أنشطة الجمعية المنشورة والمحدّثة مباشرة من لوحة الإدارة.';
-  }catch(e){
-    console.error(e);
-    fetch('data/activities.json').then(r=>r.json()).then(rows=>{activities=rows.map(x=>({title:x.title,description:x.description,category:x.category,activity_date:null,image_url:x.image}));renderActivities()}).catch(()=>{grid.innerHTML='<div class="loading">تعذر تحميل الأنشطة.</div>'});
-  }
+  try{activities=await api('activities?select=id,title,description,category,activity_date,image_url,sort_order&published=eq.true&order=sort_order.asc,created_at.desc')||[]}
+  catch(err){console.error('activities',err);try{const res=await fetch('data/activities.json');const rows=await res.json();activities=rows.map((x,i)=>({id:`local-${i}`,title:x.title,description:x.description,category:x.category,activity_date:null,image_url:x.image}))}catch{activities=[]}}
+  renderActivities();
 }
 
-document.getElementById('filters')?.addEventListener('click',e=>{const b=e.target.closest('button[data-filter]');if(!b)return;document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderActivities(b.dataset.filter)});
-
-async function loadPrograms(){
-  const box=document.querySelector('#programs .programs');if(!box)return;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/programs?select=id,title,label,description,icon,highlights,image_url,featured,sort_order&published=eq.true&order=sort_order.asc,created_at.asc`,{headers});
-    if(!res.ok)throw new Error('programs');
-    const programs=await res.json();
-    if(!programs.length){box.innerHTML='<div class="loading">لا توجد برامج منشورة حالياً.</div>';return}
-    box.innerHTML=programs.map(p=>`<article class="program ${p.featured?'featured':''}">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}" loading="lazy" style="width:100%;height:160px;object-fit:cover;border-radius:16px;margin-bottom:14px">`:''}<span class="icon">${esc(p.icon||'✨')}</span><small>${esc(p.label||'برنامج')}</small><h3>${esc(p.title)}</h3><p>${esc(p.description)}</p>${Array.isArray(p.highlights)&&p.highlights.length?`<ul>${p.highlights.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>`:''}</article>`).join('');
-    const note=document.querySelector('#programs .head p');if(note)note.textContent='برامج الجمعية الحالية، ويمكن تحديثها وترتيبها مباشرة من لوحة الإدارة.';
-  }catch(e){console.error(e)}
+function setupActivityControls(){
+  $('filters')?.addEventListener('click',e=>{const b=e.target.closest('button[data-filter]');if(!b)return;activityFilter=b.dataset.filter;activityLimit=6;document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('active',x===b));renderActivities()});
+  $('activityMore')?.addEventListener('click',()=>{activityLimit+=6;renderActivities()});
 }
 
-const counters=document.querySelectorAll('[data-count]');
-const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;const el=entry.target,target=Number(el.dataset.count);let n=0;const t=setInterval(()=>{n++;el.textContent=Math.min(n,target);if(n>=target)clearInterval(t)},70);observer.unobserve(el)}),{threshold:.6});
-counters.forEach(x=>observer.observe(x));
-
-const contactForm=document.getElementById('contactForm');
-contactForm?.addEventListener('submit',async e=>{
-  e.preventDefault();
-  const note=document.getElementById('formNote');
-  const button=contactForm.querySelector('button[type="submit"]');
-  const data=new FormData(contactForm);
-  const payload={name:String(data.get('name')||'').trim(),email:String(data.get('email')||'').trim(),subject:String(data.get('subject')||'').trim(),message:String(data.get('message')||'').trim()};
-  if(note)note.textContent='جارٍ إرسال الرسالة...';if(button)button.disabled=true;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/contact_messages`,{method:'POST',headers:{...headers,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(payload)});
-    if(!res.ok)throw new Error('send');
-    contactForm.reset();if(note)note.textContent='تم إرسال رسالتك بنجاح. شكراً لتواصلك مع جمعية نور الأمل.';
-  }catch(err){if(note)note.textContent='تعذر إرسال الرسالة حالياً. يرجى المحاولة مرة أخرى.'}
-  finally{if(button)button.disabled=false}
-});
-
+function openNews(id){
+  const post=posts.find(p=>String(p.id)===String(id)),dialog=$('newsDialog'),body=$('newsDialogBody');if(!post||!dialog||!body)return;
+  body.innerHTML=`${post.image_url?`<img src="${esc(post.image_url)}" alt="${esc(post.title)}">`:''}<span class="dialog-meta">${esc(publishedDate(post.published_at))}</span><h2>${esc(post.title)}</h2><div class="dialog-content">${esc(post.content||post.excerpt||'')}</div>`;
+  dialog.showModal();
+}
+function renderPosts(){
+  const box=$('newsGrid');if(!box)return;setStat('posts',posts.length);
+  if(!posts.length){box.innerHTML=empty('لا توجد مستجدات منشورة حالياً.');return}
+  box.innerHTML=posts.slice(0,6).map(p=>`<article class="news-card">${p.image_url?`<div class="news-media"><img src="${esc(p.image_url)}" alt="${esc(p.title)}" loading="lazy"></div>`:''}<div class="news-body"><span class="news-date">${esc(publishedDate(p.published_at))}</span><h3>${esc(p.title)}</h3><p>${esc(p.excerpt||'')}</p>${p.content?`<button class="news-more" type="button" data-post-open="${p.id}">اقرأ المزيد ←</button>`:''}</div></article>`).join('');
+}
 async function loadPosts(){
-  const box=document.querySelector('.news');if(!box)return;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/posts?select=id,title,excerpt,image_url,category,published_at&published=eq.true&order=published_at.desc`,{headers});if(!res.ok)throw new Error('posts');
-    const posts=await res.json();
-    if(!posts.length){box.innerHTML='<article><small>لا توجد منشورات</small><h3>سيتم نشر المستجدات هنا</h3><p>يمكن للمدير إضافة أول منشور من لوحة الإدارة.</p></article>';return}
-    box.innerHTML=posts.map(p=>`<article>${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;margin-bottom:12px">`:''}<small>${new Date(p.published_at).toLocaleDateString('ar-MA')}</small><h3>${esc(p.title)}</h3><p>${esc(p.excerpt||'')}</p></article>`).join('');
-  }catch(e){console.error(e)}
+  try{posts=await api('posts?select=id,title,excerpt,content,image_url,category,published_at&published=eq.true&order=published_at.desc')||[]}catch(err){console.error('posts',err);posts=[]}renderPosts();
 }
 
+function renderGallery(items){
+  const box=$('galleryGrid');if(!box)return;
+  if(!items.length){box.innerHTML='<div class="gallery-placeholder"><span>سيتم نشر صور الأنشطة هنا قريباً.</span></div>';return}
+  box.innerHTML=items.slice(0,7).map((g,i)=>`<figure data-gallery-image="${esc(g.image_url)}" data-gallery-caption="${esc(g.title||'من أنشطة جمعية نور الأمل')}"><img src="${esc(g.image_url)}" alt="${esc(g.title||'صورة من أنشطة جمعية نور الأمل')}" loading="lazy"><figcaption>${esc(g.title||'من أنشطة جمعية نور الأمل')}</figcaption></figure>`).join('');
+}
 async function loadGallery(){
-  const box=document.querySelector('#gallery .gallery');if(!box)return;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/gallery_items?select=id,title,image_url,sort_order&published=eq.true&order=sort_order.asc,created_at.desc`,{headers});if(!res.ok)throw new Error('gallery');
-    const items=await res.json();if(!items.length)return;
-    box.innerHTML=items.map((g,i)=>`<figure class="${i===0?'big':''}"><img src="${esc(g.image_url)}" alt="${esc(g.title||'صورة من أنشطة الجمعية')}" loading="lazy"><figcaption>${esc(g.title||'من أنشطة جمعية نور الأمل')}</figcaption></figure>`).join('');
-    const note=document.querySelector('#gallery .head p');if(note)note.textContent='صور حقيقية من أنشطة وبرامج الجمعية.';
-  }catch(e){console.error(e)}
+  let items=[];try{items=await api('gallery_items?select=id,title,image_url,sort_order&published=eq.true&order=sort_order.asc,created_at.desc')||[]}catch(err){console.error('gallery',err)}
+  if(!items.length)items=activities.filter(a=>a.image_url).map(a=>({title:a.title,image_url:a.image_url}));renderGallery(items);
 }
 
+function meta(name,content,property=false){const selector=property?`meta[property="${name}"]`:`meta[name="${name}"]`;const el=document.querySelector(selector);if(el&&content)el.setAttribute('content',content)}
 function applyBranding(map){
-  if(map.logo_url){
-    document.querySelectorAll('.brand').forEach(brand=>{
-      const box=brand.querySelector('.logo');if(!box)return;
-      const inFooter=!!brand.closest('footer');
-      box.innerHTML=`<img src="${esc(map.logo_url)}" alt="شعار جمعية نور الأمل" style="width:100%;height:100%;object-fit:contain">`;
-      box.style.width=inFooter?'220px':'150px';
-      box.style.height=inFooter?'142px':'96px';
-      box.style.background='transparent';
-      box.style.boxShadow='none';
-      box.style.borderRadius='0';
-      box.style.flex='0 0 auto';
-      const oldText=box.nextElementSibling;if(oldText)oldText.style.display='none';
-    });
-    const navWrap=document.querySelector('.header .nav');if(navWrap)navWrap.style.minHeight='104px';
-  }
-  const badge=document.querySelector('.hero .pill');if(badge&&map.hero_badge)badge.textContent=map.hero_badge;
-  const title=document.querySelector('.hero h1');if(title&&map.hero_title)title.textContent=map.hero_title;
-  const text=document.querySelector('.hero-grid > div > p');if(text&&map.hero_text)text.textContent=map.hero_text;
-  const image=document.querySelector('.hero-card > img');if(image&&map.hero_image_url)image.src=map.hero_image_url;
+  if(map.logo_url)document.querySelectorAll('.site-logo').forEach(img=>img.src=map.logo_url);
+  const badge=document.querySelector('.hero-badge');if(badge&&map.hero_badge)badge.textContent=map.hero_badge;
+  const title=$('hero-title');if(title&&map.hero_title)title.textContent=map.hero_title;
+  const text=document.querySelector('.hero-text');if(text&&map.hero_text)text.textContent=map.hero_text;
+  const image=$('heroImage');if(image&&map.hero_image_url)image.src=map.hero_image_url;
 }
-
 function applyRegistration(map){
-  const section=document.getElementById('registration');if(!section)return;
-  const open=map.registration_open!=='false';
-  const badge=section.querySelector('.registration-badge');
-  const year=section.querySelector('.registration-year');
-  const title=section.querySelector('.registration-copy > h2');
-  const hookTitle=section.querySelector('.registration-hook strong');
-  const hookText=section.querySelector('.registration-hook span');
-  const description=section.querySelector('.registration-hook + p');
-  const registerBtn=section.querySelector('.register-btn');
-  const phoneBtns=section.querySelectorAll('.phone-btn');
-  const note=section.querySelector('.registration-note');
-  const benefits=section.querySelector('.registration-benefits ul');
-  const heroRegister=document.querySelector('.hero .actions .primary');
+  const section=$('registration');if(!section)return;const open=map.registration_open!=='false';section.dataset.registrationOpen=String(open);
+  const badge=section.querySelector('.registration-badge'),year=section.querySelector('.registration-year'),title=section.querySelector('.registration-copy h2'),hookTitle=section.querySelector('.registration-hook strong'),hookText=section.querySelector('.registration-hook span'),description=section.querySelector('.registration-hook+p'),registerBtn=section.querySelector('.register-btn'),note=section.querySelector('.registration-note'),benefits=section.querySelector('.registration-benefits ul'),heroRegister=document.querySelector('.hero-register');
+  if(badge)badge.textContent=open?'التسجيل مفتوح':'التسجيل مغلق حالياً';if(year&&map.registration_year)year.textContent=`الموسم الدراسي ${map.registration_year}`;if(title&&map.registration_title)title.textContent=map.registration_title;if(hookTitle&&map.registration_hook_title)hookTitle.textContent=map.registration_hook_title;if(hookText&&map.registration_hook_text)hookText.textContent=map.registration_hook_text;if(description&&map.registration_description)description.textContent=map.registration_description;if(note&&map.registration_note)note.textContent=map.registration_note;
+  if(registerBtn){registerBtn.classList.toggle('hidden',!open);if(map.registration_link)registerBtn.href=map.registration_link}if(heroRegister){heroRegister.textContent=open?`التسجيل مفتوح ${map.registration_year||''}`.trim():'تعرف على البرنامج';heroRegister.href='#registration'}
+  const phones=[map.registration_phone_1,map.registration_phone_2];section.querySelectorAll('.phone-btn').forEach((btn,i)=>{const p=phones[i]||'';btn.classList.toggle('hidden',!p);if(p){btn.textContent=p;btn.href=`tel:${p.replace(/[^+\d]/g,'')}`}});
+  if(benefits&&map.registration_benefits){const icons=['📚','🛠️','🧭','💡','🤝','🌱'];const rows=map.registration_benefits.split(/\n+/).map(x=>x.trim()).filter(Boolean).map(x=>{const [title,...rest]=x.split('|');return{title:title.trim(),text:rest.join('|').trim()}});benefits.innerHTML=rows.map((b,i)=>`<li><span>${icons[i%icons.length]}</span><div><b>${esc(b.title)}</b><small>${esc(b.text)}</small></div></li>`).join('')}
+}
+function applyGeneralSettings(map){
+  const aboutTitle=$('aboutTitle'),aboutText=$('aboutText'),impactTitle=$('impactTitle'),impactText=$('impactText');if(aboutTitle&&map.about_title)aboutTitle.textContent=map.about_title;if(aboutText&&map.about_text)aboutText.textContent=map.about_text;if(impactTitle&&map.impact_title)impactTitle.textContent=map.impact_title;if(impactText&&map.impact_text)impactText.textContent=map.impact_text;
+  ['address','email','phone'].forEach(key=>{const row=document.querySelector(`[data-contact="${key}"]`),small=row?.querySelector('small'),value=map[key]?.trim();if(row)row.classList.toggle('hidden',!value);if(small&&value)small.textContent=value});
+  const social=$('socialLinks');if(social){const links=[['facebook_url','Facebook'],['instagram_url','Instagram'],['youtube_url','YouTube'],['linkedin_url','LinkedIn']].filter(([key])=>map[key]);social.innerHTML=links.map(([key,label])=>`<a href="${esc(map[key])}" target="_blank" rel="noopener noreferrer">${label}</a>`).join('')}
+  if(map.seo_title){document.title=map.seo_title;meta('og:title',map.seo_title,true);meta('twitter:title',map.seo_title)}if(map.seo_description){meta('description',map.seo_description);meta('og:description',map.seo_description,true);meta('twitter:description',map.seo_description)}
+}
+async function loadSettings(){try{const rows=await api('site_settings?select=key,value')||[];const map=Object.fromEntries(rows.map(x=>[x.key,x.value]));applyBranding(map);applyRegistration(map);applyGeneralSettings(map)}catch(err){console.error('settings',err)}}
 
-  if(badge)badge.textContent=open?'📢 التسجيل مفتوح':'⏸️ التسجيل مغلق حالياً';
-  if(year&&map.registration_year)year.textContent='الموسم الدراسي '+map.registration_year;
-  if(title&&map.registration_title)title.textContent=map.registration_title;
-  if(hookTitle&&map.registration_hook_title)hookTitle.textContent=map.registration_hook_title;
-  if(hookText&&map.registration_hook_text)hookText.textContent=map.registration_hook_text;
-  if(description&&map.registration_description)description.textContent=map.registration_description;
-  if(note&&map.registration_note)note.innerHTML='🌱 '+esc(map.registration_note);
-
-  if(registerBtn){
-    registerBtn.style.display=open?'inline-flex':'none';
-    if(map.registration_link)registerBtn.href=map.registration_link;
-  }
-  if(heroRegister){heroRegister.textContent=open?`التسجيل مفتوح ${map.registration_year||''}`.trim():'التسجيل مغلق حالياً';heroRegister.href='#registration'}
-
-  const phones=[map.registration_phone_1,map.registration_phone_2];
-  phoneBtns.forEach((btn,i)=>{
-    const p=phones[i]||'';
-    btn.style.display=p?'inline-flex':'none';
-    if(p){btn.textContent='☎️ '+p;btn.href='tel:'+p.replace(/[^+\d]/g,'')}
+function setupContactForm(){
+  const form=$('contactForm');if(!form)return;
+  form.addEventListener('submit',async e=>{e.preventDefault();const note=$('formNote'),button=form.querySelector('button[type="submit"]'),data=new FormData(form);const payload={name:String(data.get('name')||'').trim(),email:String(data.get('email')||'').trim(),subject:String(data.get('subject')||'').trim(),message:String(data.get('message')||'').trim()};
+    if(note)note.textContent='جارٍ إرسال الرسالة...';if(button)button.disabled=true;
+    try{await api('contact_messages',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(payload)});form.reset();if(note)note.textContent='تم إرسال رسالتك بنجاح. شكراً لتواصلك معنا.'}
+    catch(err){console.error('contact',err);if(note)note.textContent='تعذر إرسال الرسالة حالياً. حاول مرة أخرى بعد قليل.'}finally{if(button)button.disabled=false}
   });
-
-  if(benefits&&map.registration_benefits){
-    const icons=['📚','🛠️','🧭','💡','🤝','🌱','🎯','🚀'];
-    const rows=map.registration_benefits.split(/\n+/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split('|');return {title:(parts.shift()||'').trim(),text:parts.join('|').trim()}});
-    benefits.innerHTML=rows.map((b,i)=>`<li><span>${icons[i%icons.length]}</span><div><b>${esc(b.title)}</b><small>${esc(b.text)}</small></div></li>`).join('');
-  }
-
-  section.dataset.registrationOpen=String(open);
 }
 
-async function loadSettings(){
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=key,value`,{headers});if(!res.ok)throw new Error('settings');
-    const rows=await res.json();const map=Object.fromEntries(rows.map(x=>[x.key,x.value]));const items=document.querySelectorAll('#contact .contact-items > div small');
-    if(items[0]&&map.address)items[0].textContent=map.address;if(items[1]&&map.email)items[1].textContent=map.email;if(items[2]&&map.phone)items[2].textContent=map.phone;
-    const p=document.querySelector('#contact .contact-grid > div > p');if(p&&(map.address||map.email||map.phone))p.textContent='يسعدنا استقبال استفساراتكم ومقترحات التعاون والمشاركة في البرامج.';
-    applyBranding(map);
-    applyRegistration(map);
-  }catch(e){console.error(e)}
+function setupDialogs(){
+  $('newsGrid')?.addEventListener('click',e=>{const b=e.target.closest('[data-post-open]');if(b)openNews(b.dataset.postOpen)});
+  $('galleryGrid')?.addEventListener('click',e=>{const f=e.target.closest('[data-gallery-image]'),dialog=$('imageDialog');if(!f||!dialog)return;$('dialogImage').src=f.dataset.galleryImage;$('dialogImage').alt=f.dataset.galleryCaption||'';$('dialogCaption').textContent=f.dataset.galleryCaption||'';dialog.showModal()});
+  document.querySelectorAll('dialog').forEach(dialog=>{dialog.querySelector('.dialog-close')?.addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()})});
 }
 
-Promise.all([loadPrograms(),loadActivities(),loadPosts(),loadGallery(),loadSettings()]);
+async function boot(){
+  setupNavigation();setupChrome();setupReveal();setupActivityControls();setupContactForm();setupDialogs();
+  await Promise.all([loadPrograms(),loadActivities(),loadPosts(),loadSettings()]);
+  await loadGallery();
+}
+boot();
