@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /association-admin.html
+Disallow: /website-admin.html
+
+Sitemap: https://mourad-sat.github.io/nour-alamal-activities/sitemap.xml
