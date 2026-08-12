@@ -1,8 +1,9 @@
 (function(){
-  const VERSION='20260812-1424';
+  const VERSION='20260812-1441';
   const space=document.body.dataset.adminSpace||'association';
   const associationStages=[
     [
+      ['annual-plan-export','annual-plan-export.js'],
       ['managers-v2','admin-managers-v2.js'],
       ['finance','admin-finance.js'],
       ['dashboard','admin-dashboard.js'],
@@ -91,7 +92,6 @@
     started=true;
     loadStyle();
 
-    // Load only the essential admin modules first. This keeps the page responsive.
     if(stages[0]) await loadStageSequentially(stages[0]);
     if(stages[1]){await pause(250);await loadStageSequentially(stages[1])}
 
@@ -99,7 +99,6 @@
     document.documentElement.dataset.adminSpace=space;
     window.dispatchEvent(new CustomEvent('admin-modules-ready',{detail:{version:VERSION,space}}));
 
-    // Non-essential modules are deferred so they do not block the browser during startup.
     if(stages[2]){
       setTimeout(async()=>{
         await loadStageSequentially(stages[2]);
@@ -107,10 +106,6 @@
       },2200);
     }
 
-    // The integrated suite was duplicating dashboard/calendar/finance work and causing heavy startup pressure.
-    // It is intentionally not auto-loaded. Existing dedicated modules remain available.
-
-    // Export libraries are also deferred until the page has settled.
     setTimeout(()=>{
       Promise.all(external.map(([name,src,test])=>loadExternal(name,src,test)))
         .then(()=>window.dispatchEvent(new CustomEvent('admin-export-libs-ready')))
