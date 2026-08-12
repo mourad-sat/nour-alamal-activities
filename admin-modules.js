@@ -1,5 +1,5 @@
 (function(){
-  const VERSION='20260809-0300';
+  const VERSION='20260812-1424';
   const space=document.body.dataset.adminSpace||'association';
   const associationStages=[
     [
@@ -10,6 +10,7 @@
       ['technical-cards','admin-technical-cards.js'],
       ['reports-extended','admin-reports-extended.js']
     ],
+    [['workspace-ui','admin-workspace-ui.js']],
     [
       ['technical-export','admin-technical-cards-export.js'],
       ['technical-form-actions','admin-technical-cards-form-actions.js'],
@@ -18,12 +19,7 @@
       ['finance-reports','admin-finance-reports.js'],
       ['finance-linker','admin-finance-linker.js'],
       ['story-privacy','admin-story-privacy.js']
-    ],
-    [
-      ['integrated-suite','admin-suite.js'],
-      ['export-upgrade','admin-export-upgrade.js']
-    ],
-    [['workspace-ui','admin-workspace-ui.js']]
+    ]
   ];
   const websiteStages=[
     [
@@ -40,16 +36,92 @@
   ] : [];
   window.ADMIN_BUILD_VERSION=VERSION;
   window.ADMIN_SPACE=space;
-  function loadStyle(){const id='admin-space-theme';if(document.getElementById(id))return;const l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href=`${space==='website'?'admin-website-ui.css':'admin-association-ui.css'}?v=${VERSION}`;document.head.appendChild(l)}
-  function load(name,src){return new Promise(resolve=>{if(document.querySelector(`script[data-admin-module="${name}"]`)){resolve();return}const s=document.createElement('script');s.src=`${src}?v=${VERSION}`;s.dataset.adminModule=name;s.onload=()=>resolve();s.onerror=()=>{console.error('تعذر تحميل وحدة الإدارة:',src);resolve()};document.body.appendChild(s)})}
-  function loadExternal(name,src,test){return new Promise(resolve=>{if(test()){resolve();return}const existing=document.querySelector(`script[data-admin-external="${name}"]`);if(existing){if(test()){resolve();return}existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>resolve(),{once:true});return}const s=document.createElement('script');s.src=src;s.dataset.adminExternal=name;s.crossOrigin='anonymous';s.referrerPolicy='no-referrer';s.onload=()=>resolve();s.onerror=()=>{console.warn('تعذر تحميل مكتبة التصدير:',name);resolve()};document.head.appendChild(s)})}
+
+  let started=false;
+  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+  function loadStyle(){
+    const id='admin-space-theme';
+    if(document.getElementById(id))return;
+    const l=document.createElement('link');
+    l.id=id;l.rel='stylesheet';
+    l.href=`${space==='website'?'admin-website-ui.css':'admin-association-ui.css'}?v=${VERSION}`;
+    document.head.appendChild(l);
+  }
+
+  function load(name,src){
+    return new Promise(resolve=>{
+      if(document.querySelector(`script[data-admin-module="${name}"]`)){resolve();return}
+      const s=document.createElement('script');
+      s.src=`${src}?v=${VERSION}`;
+      s.dataset.adminModule=name;
+      s.onload=()=>resolve();
+      s.onerror=()=>{console.error('تعذر تحميل وحدة الإدارة:',src);resolve()};
+      document.body.appendChild(s);
+    });
+  }
+
+  function loadExternal(name,src,test){
+    return new Promise(resolve=>{
+      if(test()){resolve();return}
+      const existing=document.querySelector(`script[data-admin-external="${name}"]`);
+      if(existing){
+        if(test()){resolve();return}
+        existing.addEventListener('load',()=>resolve(),{once:true});
+        existing.addEventListener('error',()=>resolve(),{once:true});
+        return;
+      }
+      const s=document.createElement('script');
+      s.src=src;s.dataset.adminExternal=name;s.crossOrigin='anonymous';s.referrerPolicy='no-referrer';
+      s.onload=()=>resolve();
+      s.onerror=()=>{console.warn('تعذر تحميل مكتبة التصدير:',name);resolve()};
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadStageSequentially(stage){
+    for(const [name,src] of stage){
+      await load(name,src);
+      await pause(90);
+    }
+  }
+
   async function bootModules(){
+    if(started)return;
+    started=true;
     loadStyle();
-    for(const stage of stages)await Promise.all(stage.map(([name,src])=>load(name,src)));
+
+    // Load only the essential admin modules first. This keeps the page responsive.
+    if(stages[0]) await loadStageSequentially(stages[0]);
+    if(stages[1]){await pause(250);await loadStageSequentially(stages[1])}
+
     document.documentElement.dataset.adminBuild=VERSION;
     document.documentElement.dataset.adminSpace=space;
     window.dispatchEvent(new CustomEvent('admin-modules-ready',{detail:{version:VERSION,space}}));
-    Promise.all(external.map(([name,src,test])=>loadExternal(name,src,test))).then(()=>window.dispatchEvent(new CustomEvent('admin-export-libs-ready'))).catch(()=>{});
+
+    // Non-essential modules are deferred so they do not block the browser during startup.
+    if(stages[2]){
+      setTimeout(async()=>{
+        await loadStageSequentially(stages[2]);
+        window.dispatchEvent(new CustomEvent('admin-deferred-modules-ready',{detail:{version:VERSION,space}}));
+      },2200);
+    }
+
+    // The integrated suite was duplicating dashboard/calendar/finance work and causing heavy startup pressure.
+    // It is intentionally not auto-loaded. Existing dedicated modules remain available.
+
+    // Export libraries are also deferred until the page has settled.
+    setTimeout(()=>{
+      Promise.all(external.map(([name,src,test])=>loadExternal(name,src,test)))
+        .then(()=>window.dispatchEvent(new CustomEvent('admin-export-libs-ready')))
+        .catch(()=>{});
+    },5000);
   }
-  bootModules();
+
+  function startWhenAuthenticated(){
+    if(window.currentAdminProfile){bootModules();return}
+    window.addEventListener('admin-auth-ready',bootModules,{once:true});
+  }
+
+  startWhenAuthenticated();
 })();
